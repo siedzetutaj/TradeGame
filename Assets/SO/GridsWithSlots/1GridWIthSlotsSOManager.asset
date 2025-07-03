@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 926652278804bb048ba060f217e6b2fd, type: 3}
+  m_Name: 1GridWIthSlotsSOManager
+  m_EditorClassIdentifier: 
+  allGridsWithSlotsSO:
+  - {fileID: 11400000, guid: a9d832a7afc89b14db85235e776d4f17, type: 2}
+  - {fileID: 11400000, guid: 281a2de3397681a46b9fcfbf958c31fd, type: 2}
+  - {fileID: 11400000, guid: 998de829daaf8794fb54431dc02cff97, type: 2}
