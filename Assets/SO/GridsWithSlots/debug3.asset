@@ -36,3 +36,5 @@ MonoBehaviour:
   - {x: 1, y: 7}
   - {x: 1, y: 8}
   - {x: 1, y: 9}
+  UpgradeType: 1
+  UpgradeValue: 1

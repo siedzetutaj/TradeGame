@@ -1,11 +1,6 @@
-using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Net;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
-using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
 {
@@ -53,13 +48,6 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
         _canvas = GetComponentInParent<Canvas>();
         _rectTransform = GetComponent<RectTransform>();
-    }
-    protected void OnDisable()
-    {
-        foreach (GameObject go in _bgCells)
-        {
-            Addressables.Release(go); // obj is the handle or loaded asset
-        }
     }
 
     #endregion

@@ -9,21 +9,7 @@ public class ConfirmUpgradeButton : MonoBehaviourSingleton<ConfirmUpgradeButton>
 
     public void OnConfirmUpgradeButtonPressed()
     {
-        switch (UpgradeType)
-        {
-            case (UpgradeType.CaravanWeigh):
-                {
-                    return;
-                }
-            
-            
-            case (UpgradeType.Debug):
-            default:
-                {
-                    Debug.Log("missingUpgradeType");
-                    return;
-                }
-        }
+        ItemsToUpgradeManager.Instance.ApplyUpgrade(UpgradeType, UpgradeValue);
     }
 
 }

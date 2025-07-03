@@ -32,6 +32,35 @@ public class ItemsToUpgradeManager : MonoBehaviourSingleton<ItemsToUpgradeManage
         if (found) ConfirmUpgradeButtonCheck();
         return found;
     }
+
+
+    public void ApplyUpgrade(UpgradeType upgradeType, int upgradeValue)
+    {
+        switch (upgradeType)
+        {
+            case UpgradeType.CaravanWeigh:
+                CaravanManager.Instance.MaxWeight += upgradeValue;
+                break;
+            case UpgradeType.CaravanSize:
+                CaravanManager.Instance.MaxWeight += upgradeValue;
+                break;
+            case UpgradeType.TravelCosts:
+                // Implement travel costs logic here
+                break;
+            case UpgradeType.Base:
+                // Implement base upgrade logic here
+                break;
+            case UpgradeType.NewUpgrades:
+                // Implement new upgrades logic here
+                break;
+            case UpgradeType.Debug:
+            default:
+                Debug.Log("Missing or invalid upgrade type");
+                break;
+        }
+        ClearItemsToUpgrade();
+    }
+
 }
 
 public enum UpgradeType
