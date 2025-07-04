@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -6,30 +7,29 @@ using System.IO;
 using TMPro;
 using UnityEngine.UI;
 
-
 public class DebugGridForCreatingGridWithSlots : GridManager
 {
     public Button saveButton; 
+
+    public Dictionary<ItemSO, List<GridItem>> ItemsToPlaceIn = new();
+    public TMP_InputField NameInputField;
+
+    [SerializeField] private TMP_Dropdown _dropdown;
+    [SerializeField] private TMP_InputField _intInputField;
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+        _dropdown.ClearOptions();
+        _dropdown.AddOptions(new List<string>(System.Enum.GetNames(typeof(UpgradeType))));
+        _intInputField.contentType = TMP_InputField.ContentType.IntegerNumber;
+    }
     private void Update()
     {
         if (CanSave())
             saveButton.interactable = true;
         else 
             saveButton.interactable = false;
-        if (Input.GetKeyUp(KeyCode.R))
-        {
-            ButtonForResetingTheGrid();
-        }
-        else if (Input.GetKeyDown(KeyCode.S) && Input.GetKey(KeyCode.LeftAlt)
-                 && Input.GetKey(KeyCode.LeftControl) && CanSave())
-        {
-            ButtonForSavingGridToSO();
-        }
-        
     }
-
-    public Dictionary<ItemSO, List<GridItem>> ItemsToPlaceIn = new();
-    public TMP_InputField NameInputField;
 
     public void ButtonForResetingTheGrid()
     {
@@ -105,7 +105,6 @@ public class DebugGridForCreatingGridWithSlots : GridManager
             }
         }
     }
-#if UNITY_EDITOR
     public void CreateItem(List<int> cellsPerRow, List<Vector2Int> disableCellsAt)
     {
         string fullPath = AssetDatabase.GetAssetPath(GridWIthSlotsSOManager.instance);
@@ -122,7 +121,8 @@ public class DebugGridForCreatingGridWithSlots : GridManager
                                     ));
         gridSO.CellsPerRow = new(cellsPerRow);
         gridSO.DisableCellsAt = new(disableCellsAt);
-
+        gridSO.UpgradeType = (UpgradeType)_dropdown.value;
+        gridSO.UpgradeValue = _intInputField.text != string.Empty ? int.Parse(_intInputField.text) : 0;
         EditorUtility.SetDirty(gridSO);
         GridWIthSlotsSOManager.instance.allGridsWithSlotsSO.Add(gridSO);
 
@@ -165,5 +165,5 @@ public class DebugGridForCreatingGridWithSlots : GridManager
         return AssetDatabase.LoadAssetAtPath<T>(fullPath);
     }
     #endregion
-#endif
 }
+#endif

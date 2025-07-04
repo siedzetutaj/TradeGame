@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: 1GridWIthSlotsSOManager
   m_EditorClassIdentifier: 
   allGridsWithSlotsSO:
-  - {fileID: 11400000, guid: a9d832a7afc89b14db85235e776d4f17, type: 2}
-  - {fileID: 11400000, guid: 281a2de3397681a46b9fcfbf958c31fd, type: 2}
-  - {fileID: 11400000, guid: 998de829daaf8794fb54431dc02cff97, type: 2}
+  - {fileID: 11400000, guid: a80df2a98de569e4c8387e8f2bc93fe5, type: 2}
+  - {fileID: 11400000, guid: a307fcbd571895248b66d927440a0d9e, type: 2}
+  - {fileID: 11400000, guid: 1a18d2c4b429be947a2f83745908425c, type: 2}

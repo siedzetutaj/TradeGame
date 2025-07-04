@@ -1,10 +1,9 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ItemsToUpgradeManager : MonoBehaviourSingleton<ItemsToUpgradeManager>
+public class ItemsToUpgradeManager : MonoBehaviourSingleton<ItemsToUpgradeManager>, IUpgradeAction
 {
     public Transform ItemsToUpgradeHolder;
     public GameObject ItemToUpgradePrefab;
@@ -32,17 +31,14 @@ public class ItemsToUpgradeManager : MonoBehaviourSingleton<ItemsToUpgradeManage
         if (found) ConfirmUpgradeButtonCheck();
         return found;
     }
-
-
-    public void ApplyUpgrade(UpgradeType upgradeType, int upgradeValue)
+    public void PerformUpgrade(GridWithSlotsSO gridWithSlotsSO)
     {
-        switch (upgradeType)
+        switch (gridWithSlotsSO.UpgradeType)
         {
             case UpgradeType.CaravanWeigh:
-                CaravanManager.Instance.MaxWeight += upgradeValue;
+                CaravanManager.Instance.MaxWeight += gridWithSlotsSO.UpgradeValue;
                 break;
             case UpgradeType.CaravanSize:
-                CaravanManager.Instance.MaxWeight += upgradeValue;
                 break;
             case UpgradeType.TravelCosts:
                 // Implement travel costs logic here
@@ -60,7 +56,6 @@ public class ItemsToUpgradeManager : MonoBehaviourSingleton<ItemsToUpgradeManage
         }
         ClearItemsToUpgrade();
     }
-
 }
 
 public enum UpgradeType

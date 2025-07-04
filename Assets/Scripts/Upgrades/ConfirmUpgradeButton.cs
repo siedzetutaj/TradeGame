@@ -1,15 +1,26 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class ConfirmUpgradeButton : MonoBehaviourSingleton<ConfirmUpgradeButton>
 {
-    public UpgradeType UpgradeType;
-    public int UpgradeValue;
+    public GridWithSlotsSO GridWithSlotsSO;
 
     public void OnConfirmUpgradeButtonPressed()
     {
-        ItemsToUpgradeManager.Instance.ApplyUpgrade(UpgradeType, UpgradeValue);
+        var upgradables = FindObjectsOfType<MonoBehaviour>().OfType<IUpgradeAction>();
+
+        foreach (var upgradable in upgradables)
+        {
+            upgradable.PerformUpgrade(GridWithSlotsSO);
+        }
+
+        // Optional: Also call the manager if needed
     }
 
+}
+public interface IUpgradeAction
+{
+    void PerformUpgrade(GridWithSlotsSO gridWithSlotsSO);
 }

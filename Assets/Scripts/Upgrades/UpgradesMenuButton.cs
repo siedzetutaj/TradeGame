@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class UpgradesMenuButton : MonoBehaviour
+public class UpgradesMenuButton : MonoBehaviour, IUpgradeAction
 {
     [SerializeField] private GridWIthSlotsSOManager _gridWithSlotsSOManager;
     [SerializeField] private GameObject _upgradeButtonPrefab;
@@ -21,7 +21,10 @@ public class UpgradesMenuButton : MonoBehaviour
         _tradeReferences.Upgrade.SetActive(true);
         foreach(GridWithSlotsSO gridSO in _gridWithSlotsSOManager.allGridsWithSlotsSO)
         {
-            CreateUpgradeButton(gridSO);
+            if(!gridSO.IsUpgraded)
+            {
+                CreateUpgradeButton(gridSO);
+            }
         }
     }
     private void DestroyItemsGameObjects(TradeMechanic tradeMechanic)
@@ -50,5 +53,11 @@ public class UpgradesMenuButton : MonoBehaviour
             
             _upgradeButtons.Add(upgradeButton);
         }
+    }
+    public void PerformUpgrade(GridWithSlotsSO gridWithSlotsSO)
+    {
+        UpgradeButton button = _upgradeButtons.FirstOrDefault(x => x.GridWithSlotsSO == gridWithSlotsSO);
+        _upgradeButtons.Remove(button);
+        Destroy(button.gameObject);
     }
 }

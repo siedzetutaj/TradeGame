@@ -19,6 +19,8 @@ public class DebugEditorGridForCreatingGridWithSlots : GridManagerEditor
         {
             EditorGUILayout.PropertyField(serializedObject.FindProperty("NameInputField"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("saveButton"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_dropdown"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_intInputField"));
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
 

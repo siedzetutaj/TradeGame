@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
 
-public class GridManagerWithSlots : GridManager
+public class GridManagerWithSlots : GridManager, IUpgradeAction
 {
     public List<ItemForUpgradeData> ItemsPlacedIn;
     [SerializeField] private SerializableDictionary<GridItem, int> _gridItems = new();
@@ -32,18 +32,20 @@ public class GridManagerWithSlots : GridManager
     public void InitializeGridWithSlots(GridWithSlotsSO gridWithSlotsSO)
     {
         LoadDataFromSO(gridWithSlotsSO);
-        ConfirmUpgradeButton.Instance.UpgradeType = gridWithSlotsSO.UpgradeType;
-        ConfirmUpgradeButton.Instance.UpgradeValue = gridWithSlotsSO.UpgradeValue;
+        ConfirmUpgradeButton.Instance.GridWithSlotsSO = gridWithSlotsSO;
 
         base.InitializeGrid();
         LoadItemsToGrid();
     }
     private void LoadDataFromSO(GridWithSlotsSO gridWithSlotsSO)
     {
-        _gridWithSlotsSO = gridWithSlotsSO;
-        cellsPerRow = new(gridWithSlotsSO.CellsPerRow);
-        disableCellsAt = new(gridWithSlotsSO.DisableCellsAt);
-        ItemsPlacedIn = new(gridWithSlotsSO.ItemsPlacedIn);
+        if (!gridWithSlotsSO.IsUpgraded)
+        {
+            _gridWithSlotsSO = gridWithSlotsSO;
+            cellsPerRow = new(gridWithSlotsSO.CellsPerRow);
+            disableCellsAt = new(gridWithSlotsSO.DisableCellsAt);
+            ItemsPlacedIn = new(gridWithSlotsSO.ItemsPlacedIn);
+        }
     }
     public void LoadItemsToGrid()
     {
@@ -101,13 +103,16 @@ public class GridManagerWithSlots : GridManager
                 ItemForUpgradeData itemData = new(item.Key.ItemSO, item.Key.ShapeOffsets, item.Key.Initialcell.listPosition, item.Value);
                 _gridWithSlotsSO.ItemsPlacedIn.Add(itemData);
             }
-
-            _gridItems.Keys.ToList().ForEach(key =>
-            {
-                if (key != null) Destroy(key.gameObject);
-            });
-            _gridItems.Clear();
+            ClearItemsInGrid();
         }
+    }
+    public void ClearItemsInGrid()
+    {
+        _gridItems.Keys.ToList().ForEach(key =>
+        {
+            if (key != null) Destroy(key.gameObject);
+        });
+        _gridItems.Clear();
     }
     public void OnUpgradesExit()
     {
@@ -118,5 +123,11 @@ public class GridManagerWithSlots : GridManager
     private GridCell GetCellAtPostion(Vector2Int cellPostion)
     {
         return grid[cellPostion.x][cellPostion.y];
+    }
+    public void PerformUpgrade(GridWithSlotsSO gridWithSlotsSO)
+    {
+        ClearGrid();
+        ClearItemsInGrid();
+        _gridWithSlotsSO.IsUpgraded = true;
     }
 }

@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 275cd4aeb7dc91c45bde890a6bb6da08, type: 3}
-  m_Name: debug3
+  m_Name: IncreaseSize1
   m_EditorClassIdentifier: 
-  GridName: debug3
+  GridName: IncreaseSize1
   ItemsToPlaceIn:
     list:
-    - Key: {fileID: 11400000, guid: 335915def563f4c4eac28365829be279, type: 2}
-      Value: 4
+    - Key: {fileID: 11400000, guid: 32eeb446a48bff6439184a708256abe9, type: 2}
+      Value: 2
   ItemsPlacedIn: []
   CellsPerRow: 0a0000000a000000
   DisableCellsAt:
@@ -28,8 +28,8 @@ MonoBehaviour:
   - {x: 0, y: 7}
   - {x: 0, y: 8}
   - {x: 0, y: 9}
-  - {x: 1, y: 0}
-  - {x: 1, y: 2}
+  - {x: 1, y: 1}
+  - {x: 1, y: 3}
   - {x: 1, y: 4}
   - {x: 1, y: 5}
   - {x: 1, y: 6}
@@ -38,3 +38,4 @@ MonoBehaviour:
   - {x: 1, y: 9}
   UpgradeType: 1
   UpgradeValue: 1
+  IsUpgraded: 0

@@ -11,6 +11,7 @@ public class GridWithSlotsSO : ScriptableObject
     public List<Vector2Int> DisableCellsAt = new();
     public UpgradeType UpgradeType = UpgradeType.Debug;
     public int UpgradeValue = 0;
+    public bool IsUpgraded = false;
 
 }
 [Serializable]

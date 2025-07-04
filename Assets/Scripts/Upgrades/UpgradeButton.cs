@@ -22,7 +22,6 @@ public class UpgradeButton : MonoBehaviour
         CreateItemsToUpgrade(itemsToUpgradeManager);
         LoadSavedItemsToUpgrade(itemsToUpgradeManager);
     }
-  
     private void LoadSavedItemsToUpgrade(ItemsToUpgradeManager itemsToUpgradeManager)
     {
         //foreach (var itemToPlaceIn in GridWithSlotsSO.itemsPlacedIn)
