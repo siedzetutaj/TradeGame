@@ -48,34 +48,117 @@ public class DebugGridForCreatingGridWithSlots : GridManager
     //dodac zapis jakie itemy
     public void ButtonForSavingGridToSO()
     {
-        List<int> tempCellsPerRow = new List<int>(cellsPerRow);
-        List<Vector2Int> tempdisableCellsAt = new();
-        for (int row = 0; row < cellsPerRow.Count; row++)
+        // 1. Collect all occupied cells with their original positions
+        HashSet<Vector2Int> originalOccupiedCells = new HashSet<Vector2Int>();
+
+        foreach (var itemList in ItemsToPlaceIn.Values)
         {
-            for (int col = 0; col < cellsPerRow[row]; col++)
+            foreach (GridItem item in itemList)
             {
-                if (!grid[row][col].isOccupied)
-                    tempdisableCellsAt.Add(new Vector2Int(row, col));
-            }
-        }
-        for (int row = cellsPerRow.Count - 1; row >= 0; row--)
-        {
-            List<Vector2Int> disabledCellsAtRow = new();
-            for (int col = 0; col < cellsPerRow[row]; col++)
-            {
-                Vector2Int cellPosition = new(row, col);
-                if (tempdisableCellsAt.Contains(cellPosition))
+                if (item.Initialcell == null) continue;
+
+                Vector2Int basePos = item.Initialcell.listPosition;
+                originalOccupiedCells.Add(basePos);
+
+                foreach (Vector2Int offset in item.ShapeOffsets)
                 {
-                    disabledCellsAtRow.Add(cellPosition);
+                    Vector2Int cellPos = new Vector2Int(
+                        basePos.x - offset.y,
+                        basePos.y + offset.x
+                    );
+                    originalOccupiedCells.Add(cellPos);
                 }
             }
-            if (disabledCellsAtRow.Count >= cellsPerRow[row])
+        }
+
+        // 2. Calculate global normalization values
+        int minRow = originalOccupiedCells.Min(c => c.x);
+        int minCol = originalOccupiedCells.Min(c => c.y); // Global minimum column
+
+        // 3. Create normalized grid structure
+        Dictionary<int, int> rowWidths = new Dictionary<int, int>();
+        Dictionary<Vector2Int, Vector2Int> positionMap = new Dictionary<Vector2Int, Vector2Int>();
+        List<Vector2Int> tempDisableCellsAt = new List<Vector2Int>();
+
+        // First pass: determine row widths and create position mapping
+        foreach (Vector2Int pos in originalOccupiedCells)
+        {
+            int normalizedRow = pos.x - minRow;
+            int normalizedCol = pos.y - minCol; // Use global column normalization
+
+            // Track maximum column for each row
+            if (!rowWidths.TryGetValue(normalizedRow, out int currentMax) || normalizedCol > currentMax)
             {
-                tempCellsPerRow.RemoveAt(row); // Safe: Doesn't affect earlier indices
-                tempdisableCellsAt.RemoveAll(x => disabledCellsAtRow.Contains(x));
+                rowWidths[normalizedRow] = normalizedCol;
+            }
+
+            positionMap[pos] = new Vector2Int(normalizedRow, normalizedCol);
+        }
+
+        // Second pass: create cellsPerRow list and find disabled cells
+        List<int> tempCellsPerRow = new List<int>();
+        int maxRow = rowWidths.Keys.Max();
+
+        for (int row = 0; row <= maxRow; row++)
+        {
+            if (rowWidths.TryGetValue(row, out int maxCol))
+            {
+                tempCellsPerRow.Add(maxCol + 1); // +1 because columns are 0-based
+
+                // Find empty cells in this row
+                for (int col = 0; col <= maxCol; col++)
+                {
+                    Vector2Int testPos = new Vector2Int(row + minRow, col + minCol);
+                    if (!originalOccupiedCells.Contains(testPos))
+                    {
+                        tempDisableCellsAt.Add(new Vector2Int(row, col));
+                    }
+                }
+            }
+            else
+            {
+                // Empty row (shouldn't happen since we only process rows with items)
+                tempCellsPerRow.Add(0);
             }
         }
-        CreateItem(tempCellsPerRow, tempdisableCellsAt);
+
+        // 4. Update item positions and offsets to normalized grid
+        foreach (var itemList in ItemsToPlaceIn.Values)
+        {
+            foreach (GridItem item in itemList)
+            {
+                if (item.Initialcell == null) continue;
+
+                Vector2Int originalBasePos = item.Initialcell.listPosition;
+                if (positionMap.TryGetValue(originalBasePos, out Vector2Int newBasePos))
+                {
+                    // Update shape offsets relative to new base position
+                    List<Vector2Int> newOffsets = new List<Vector2Int>();
+                    foreach (Vector2Int offset in item.ShapeOffsets)
+                    {
+                        Vector2Int originalCellPos = new Vector2Int(
+                            originalBasePos.x - offset.y,
+                            originalBasePos.y + offset.x
+                        );
+                        if (positionMap.TryGetValue(originalCellPos, out Vector2Int newCellPos))
+                        {
+                            Vector2Int newOffset = new Vector2Int(
+                                newCellPos.y - newBasePos.y,
+                                newBasePos.x - newCellPos.x
+                            );
+                            newOffsets.Add(newOffset);
+                        }
+                    }
+                    item.ShapeOffsets = newOffsets;
+
+                    // Update the item's base position
+                    item.Initialcell.listPosition = newBasePos;
+                }
+            }
+        }
+
+        // 5. Create the final grid
+        CreateItem(tempCellsPerRow, tempDisableCellsAt);
     }
     public void AddItem(GridItem item)
     {
@@ -137,7 +220,8 @@ public class DebugGridForCreatingGridWithSlots : GridManager
         if (NameInputField.text != string.Empty
             && ItemsToPlaceIn != null
             && cellsPerRow != null
-            && !gridWithSlotsSOManager.allGridsWithSlotsSO.Any(x => x.GridName == NameInputField.text))
+            && !gridWithSlotsSOManager.allGridsWithSlotsSO.Any(x => x.GridName == NameInputField.text)
+            && _intInputField.text != string.Empty)
         {
             return true;
         }

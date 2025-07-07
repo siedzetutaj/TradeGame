@@ -1,8 +1,4 @@
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using UnityEditor;
-using UnityEngine;
 
 [CustomEditor(typeof(GridManagerWithSlots))]
 public class GridManagerWithSlotsEditor : GridManagerEditor

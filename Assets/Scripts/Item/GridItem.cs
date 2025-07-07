@@ -411,14 +411,16 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             _graphicOffsets.Add(prefab);
         }
     }
-    public bool TryUpgradeItemTransitionSetup(GridManager gridManager, GridCell initialCell)
+    public bool TryUpgradeItemTransitionSetup(GridManager newGridManager, GridCell initialCell)
     {
-        if (gridManager is GridManagerWithSlots gridWithSlots)
+        if (newGridManager is GridManagerWithSlots gridWithSlots)
         {
             if (gridWithSlots.AddItemToGrid(this))
             {
                 CaravanManager.Instance.ChangeWeightWalue(-ItemSO.weight);
-                ItemTransitionSetup(gridManager, initialCell);
+                ItemTransitionSetup(newGridManager, initialCell);
+                CaravanManager.Instance.GiveAwayItem(gameObject);
+
                 return true;
             }
         }
@@ -426,20 +428,22 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             _gridWithSlots.RemoveItemFromGrid(this);
 
-            ItemTransitionSetup(gridManager, initialCell);
+            ItemTransitionSetup(newGridManager, initialCell);
+
+            CaravanManager.Instance.TakeItem(gameObject);
             return true;
         }
         ItemCanNotBePlacedInThisGrid();
         return false;
     }
-    public void ItemTransitionSetup(GridManager gridManager, GridCell initialCell)
+    public void ItemTransitionSetup(GridManager newGridManager, GridCell initialCell)
     {
         ShapeOffsets = new(_tempShapeOffsets);
-        _gridManager = gridManager;
+        _gridManager = newGridManager;
         Initialcell = initialCell;
         Initialcell.isOccupied = true;
         transform.position = (Vector2)Initialcell.position;
-        GridType = gridManager.gridType;
+        GridType = newGridManager.gridType;
 
         foreach (GridCell cell in GetOccupiedCells())
         {

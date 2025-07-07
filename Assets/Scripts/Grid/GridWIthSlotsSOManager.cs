@@ -12,7 +12,11 @@ public class GridWIthSlotsSOManager : ScriptableSingleton<GridWIthSlotsSOManager
         foreach(GridWithSlotsSO grid in allGridsWithSlotsSO)
         {
             grid.ItemsPlacedIn.Clear();
+            grid.IsUpgraded = false;
         }
     }
-
+    public void ClearEmpty()
+    {
+        allGridsWithSlotsSO.RemoveAll(grid => grid == null);
+    }
 }

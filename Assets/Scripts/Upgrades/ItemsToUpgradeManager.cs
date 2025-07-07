@@ -39,6 +39,7 @@ public class ItemsToUpgradeManager : MonoBehaviourSingleton<ItemsToUpgradeManage
                 CaravanManager.Instance.MaxWeight += gridWithSlotsSO.UpgradeValue;
                 break;
             case UpgradeType.CaravanSize:
+                CaravanManager.Instance.CaravanGridPreset(gridWithSlotsSO.UpgradeValue);
                 break;
             case UpgradeType.TravelCosts:
                 // Implement travel costs logic here

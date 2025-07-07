@@ -1,12 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 
 public class UpgradeButton : MonoBehaviour
 {
     public GridWithSlotsSO GridWithSlotsSO;
     public GridManagerWithSlots GridWithSlots;
+    public TextMeshProUGUI TMP;
 
     public void OnUpgradeButtonPress()
     {

@@ -1,29 +1,31 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class UpgradesMenuButton : MonoBehaviour, IUpgradeAction
+public class UpgradesMenuButton : MonoBehaviour
 {
     [SerializeField] private GridWIthSlotsSOManager _gridWithSlotsSOManager;
-    [SerializeField] private GameObject _upgradeButtonPrefab;
-    private List<UpgradeButton> _upgradeButtons = new();
     private TradeReferences _tradeReferences;
+    private UpgradeButtonsManager upgradeButtonsManager;
 
     public void OnUpgradesButtonPressed()
     {
         _tradeReferences = TradeReferences.Instance;
         GameLogic.Instance.EnableVendorPanel();
         DestroyItemsGameObjects(TradeMechanic.Instance);
+
         _tradeReferences.Chest.SetActive(false);
         _tradeReferences.Trade.SetActive(false);
         _tradeReferences.Upgrade.SetActive(true);
-        foreach(GridWithSlotsSO gridSO in _gridWithSlotsSOManager.allGridsWithSlotsSO)
+
+        upgradeButtonsManager = UpgradeButtonsManager.Instance;
+        upgradeButtonsManager.TradeReferences = _tradeReferences;
+
+        foreach (GridWithSlotsSO gridSO in _gridWithSlotsSOManager.allGridsWithSlotsSO)
         {
             if(!gridSO.IsUpgraded)
             {
-                CreateUpgradeButton(gridSO);
+                upgradeButtonsManager.CreateUpgradeButton(gridSO);
             }
         }
     }
@@ -41,23 +43,6 @@ public class UpgradesMenuButton : MonoBehaviour, IUpgradeAction
             tradeMechanic.ActiveItemGenerator.CreatedItemsToBuy.Clear();
         }
     }
-    private void CreateUpgradeButton(GridWithSlotsSO gridSO)
-    {
-        if(!_upgradeButtons.FirstOrDefault(x=>x.GridWithSlotsSO == gridSO))
-        {
-            GameObject upgradeButtonGameObject = Instantiate(_upgradeButtonPrefab, _tradeReferences.UpgradesHolder);
-            
-            UpgradeButton upgradeButton = upgradeButtonGameObject.GetComponent<UpgradeButton>();
-            upgradeButton.GridWithSlotsSO = gridSO;
-            upgradeButton.GridWithSlots = _tradeReferences.UpgradeGrid;
-            
-            _upgradeButtons.Add(upgradeButton);
-        }
-    }
-    public void PerformUpgrade(GridWithSlotsSO gridWithSlotsSO)
-    {
-        UpgradeButton button = _upgradeButtons.FirstOrDefault(x => x.GridWithSlotsSO == gridWithSlotsSO);
-        _upgradeButtons.Remove(button);
-        Destroy(button.gameObject);
-    }
+
+
 }
