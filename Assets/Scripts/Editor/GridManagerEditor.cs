@@ -49,6 +49,7 @@ public class GridManagerEditor : Editor
     }
     protected void DrawGridVisualization()
     {
+
         showGridVisualization = EditorGUILayout.BeginFoldoutHeaderGroup(showGridVisualization, "Grid Visualization");
         if (showGridVisualization)
         {
@@ -56,6 +57,8 @@ public class GridManagerEditor : Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("gridParent"));
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("GridItems"));
+
     }
     protected void DrawGridDebug(GridManager gridManager)
     {

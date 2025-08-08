@@ -41,10 +41,10 @@ public class ItemSOManager : ScriptableObject
             item.description = description;
             item.sprite = sprite;
             item.value = value;
-            item.maxCount = maxCount;
+            item.maxStackCount = maxCount;
             item.weight = weight;
             item.itemRarity = itemRarity;
-            item.itemtype = itemtype;
+            item.itemType = itemtype;
             item.ration = ration;
             item.shapeOffsets = shapeOffsets;
 

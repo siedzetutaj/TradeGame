@@ -21,7 +21,7 @@ MonoBehaviour:
     - Key: {fileID: 11400000, guid: 7b910ec0f66448040820fca447208701, type: 2}
       Value: 3
     - Key: {fileID: 11400000, guid: 32eeb446a48bff6439184a708256abe9, type: 2}
-      Value: 5
+      Value: 7
     - Key: {fileID: 11400000, guid: 335915def563f4c4eac28365829be279, type: 2}
       Value: 1
   VendorBuyMultiplayerForTypes:

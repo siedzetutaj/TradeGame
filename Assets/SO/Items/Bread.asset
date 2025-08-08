@@ -16,10 +16,10 @@ MonoBehaviour:
   description: "\u017Celazny"
   sprite: {fileID: 21300000, guid: 1a58749f555f75e48baa41893215b26e, type: 3}
   value: 10
-  maxCount: 5
+  maxStackCount: 5
   weight: 2
   itemRarity: 0
-  itemtype: 0
+  itemType: 0
   ration: 15
   shapeOffsets:
   - {x: 0, y: 1}

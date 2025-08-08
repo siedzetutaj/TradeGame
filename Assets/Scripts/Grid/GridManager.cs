@@ -37,6 +37,8 @@ public class GridManager : MonoBehaviour
     [SerializeField] public List<List<GridCell>> grid = new List<List<GridCell>>();
     protected List<GameObject> visualCells = new List<GameObject>(); // List to store created cell visuals
 
+    public List<GridItem> GridItems = new List<GridItem>();
+
     protected virtual void OnEnable()
     {
         if (!GridManagerRegistry.Instance.gridsBounds.ContainsValue(this))
@@ -191,6 +193,26 @@ public class GridManager : MonoBehaviour
                 if (cell.listPosition == position)
                 {
                     return cell;
+                }
+            }
+        }
+        return null;
+    }
+    public GridItem GetItemAtCell(GridCell cell)
+    {
+        foreach (GridItem item in GridItems)
+        {
+            // Check if this cell is part of the item's shape
+            if (item.Initialcell != null)
+            {
+                foreach (Vector2Int offset in item.ShapeOffsets)
+                {
+                    Vector2Int itemCellPos = item.Initialcell.listPosition +
+                                           new Vector2Int(-offset.y, offset.x);
+                    if (itemCellPos == cell.listPosition)
+                    {
+                        return item;
+                    }
                 }
             }
         }

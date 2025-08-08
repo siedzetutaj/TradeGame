@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -36,7 +34,7 @@ public class ResourceManager : MonoBehaviourSingleton<ResourceManager>
         }
     }
 
-    [SerializeField] private Dictionary<GridItem, int> _resourcesToGenerate = new();
+    [SerializeField] private SerializableDictionary<ItemData, int> _resourcesToGenerate = new();
     
     [SerializeField] private List<Resource> _resources = new();
 
@@ -45,19 +43,10 @@ public class ResourceManager : MonoBehaviourSingleton<ResourceManager>
     [SerializeField] private Button _travelButton;
     [SerializeField] private GameObject _resourcePanel;
     [SerializeField] private Slider _resourceSlider;
-    /*
-     * Trzeba to przemyslec
-     * resource dodaja sie do listy
-     * ale kiedy mapa jest odpalona to generuja sie obiekty
-     * kiedy mapa jest wylaczona to usuwaja sie
-     * kiedy itemy sa dodawane w inventory to dodaja sie do dicionary
-     * analogicznie usuwanie
-     * 
-     * do tego trzeba tu dostarczyc koszt podrozy
-     * i przeniesc funkcjonalnosc ze dopiero jak travel button jest nacisniety to ziutek leci
-     * 
-     * 
-     * GL HF
+    /*TODO:
+     * Trzeba to przerobic zeby przeliczalo zasoby dopiero jak sie wejdzie do mapy
+     * A nie za kazdym razem jak sie doda jedzenie do eq
+     * Plus musi uwzgledniac curr stack count
     */
     private void OnEnable()
     {
@@ -71,15 +60,14 @@ public class ResourceManager : MonoBehaviourSingleton<ResourceManager>
     {
         _resourcePanel.SetActive(false);
     }
-
-    public void AddResourceToInventory(GridItem item, int amount = 1)
+    private void AddResourceToInventory(ItemData item)
     {
         if (_resourcesToGenerate.Keys.Contains(item))
-            _resourcesToGenerate[item] += amount;
+            _resourcesToGenerate[item] += item.StackCount;
         else
-            _resourcesToGenerate.Add(item, amount);
+            _resourcesToGenerate.Add(item, item.StackCount);
     }
-    public void RemoveResourceFromInventory(GridItem item, int amount = 1)
+    private void RemoveResourceFromInventory(ItemData item, int amount = 1)
     {
         _resourcesToGenerate[item] -= amount;
 
@@ -104,7 +92,7 @@ public class ResourceManager : MonoBehaviourSingleton<ResourceManager>
         }
 
     }
-    public void DestroyResourcesInMap()
+    private void DestroyResourcesInMap()
     {
         //GridItem item = resource.GridItem;
 
@@ -122,7 +110,7 @@ public class ResourceManager : MonoBehaviourSingleton<ResourceManager>
     public void OnResourceAmountChange(Resource resource, int newAmount, int previousAmount)
     {
         int amountDiffrence = newAmount - previousAmount;
-        SelectedRationsAmount += resource.GridItem.ItemSO.ration * amountDiffrence;
+        SelectedRationsAmount += resource.ItemData.ItemSO.ration * amountDiffrence;
 
         if (SelectedRationsAmount >= RationNeededToTravel)
         {
@@ -135,16 +123,13 @@ public class ResourceManager : MonoBehaviourSingleton<ResourceManager>
             _currentTravelButton.SetLineImageToRed();
         }
     }
-
     public void OnTravelButtonPressed()
     {
         foreach (Resource resource in _resources)
         {
             if (resource.CurrentAmountValue > 0)
             {
-                RemoveResourceFromInventory(resource.GridItem, resource.CurrentAmountValue);
-                CaravanManager.Instance.OnItemUsedAsRation(resource.GridItem);
-                CaravanManager.Instance.ChangeWeightWalue(-resource.GridItem.ItemSO.weight);
+                CaravanManager.Instance.OnItemUsedAsRation(resource.ItemData, resource.CurrentAmountValue);
             }
         }
         DestroyResourcesInMap();
@@ -160,6 +145,17 @@ public class ResourceManager : MonoBehaviourSingleton<ResourceManager>
             _resourcePanel.SetActive(false);
             TravelButtonsManager.Instance.IsResourceMenuOpen = false;
             _currentTravelButton.OnPointerExit(null);
+        }
+
+        _resourcesToGenerate.Clear();
+
+        foreach (ItemData item in CaravanManager.Instance.CaravanItemStacks)
+        {
+            if(item == null) continue;
+            if (item.ItemSO.itemType==ItemType.food)
+            {
+                AddResourceToInventory(item);
+            }
         }
     }
    

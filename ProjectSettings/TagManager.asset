@@ -8,6 +8,7 @@ TagManager:
   - DestinationPanel
   - VendorPanel
   - UpgradePanel
+  - ItemBackground
   layers:
   - Default
   - TransparentFX

@@ -6,7 +6,13 @@ using UnityEngine.Assertions.Must;
 
 public class GridManagerWithSlots : GridManager, IUpgradeAction
 {
-    public List<ItemSaveData> ItemsPlacedIn;
+    /*TODO:
+     * Tu trza bêdzie podmieniæ value (int w _gid ITems) na StackCount
+     * 
+    */
+
+
+    public List<ItemData> ItemsPlacedIn;
     [SerializeField] private SerializableDictionary<GridItem, int> _gridItems = new();
     [SerializeField] private GameObject _itemPrefab;
     [SerializeField] private Transform _itemHolder;
@@ -53,7 +59,7 @@ public class GridManagerWithSlots : GridManager, IUpgradeAction
         {
             foreach (var item in ItemsPlacedIn)
             {
-                CreateItem(item, item.Value, _itemPrefab, _itemHolder);
+                CreateItem(item, item.StackCount, _itemPrefab, _itemHolder);
             }
         }
         _gridWithSlotsSO.ItemsPlacedIn.Clear();
@@ -81,7 +87,7 @@ public class GridManagerWithSlots : GridManager, IUpgradeAction
         }
         return false;
     }
-    private void CreateItem(ItemSaveData data, int value, GameObject prefab, Transform hodler)
+    private void CreateItem(ItemData data, int value, GameObject prefab, Transform hodler)
     {
 
         GameObject createdItem = Instantiate(prefab, hodler);
@@ -100,7 +106,7 @@ public class GridManagerWithSlots : GridManager, IUpgradeAction
 
             foreach (var item in _gridItems)
             {
-                ItemSaveData itemData = new(item.Key.ItemSO, item.Key.ShapeOffsets, item.Key.Initialcell.listPosition, item.Value);
+                ItemData itemData = new(item.Key.ItemSO, item.Key.ShapeOffsets, item.Key.Initialcell.listPosition, item.Value);
                 _gridWithSlotsSO.ItemsPlacedIn.Add(itemData);
             }
             ClearItemsInGrid();

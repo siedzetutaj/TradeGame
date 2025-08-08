@@ -15,45 +15,53 @@ public class TradeMechanic : MonoBehaviourSingleton<TradeMechanic>
 
     public VendorItemGenerator ActiveItemGenerator;
 
-    //kalkuluje cene itemu
-    //zmienia value baru
     private void OnEnable()
     {
         _Slider = TradeBar.Instance.slider;
         ResetSlider();
     }
-    public void CalculatePrice(GridItem item)
+    private void OnDisable()
     {
-        int itemValue = item.ItemSO.value;
+        ResetSlider();
+    }
+    public void CalculatePrice(GridItem item, GridType targetedGridType, int amount)
+    {
+        // First remove any existing references to this item
+        _BoughtItems.Remove(item);
+        _SoldItems.Remove(item);
+
+        int itemValue = item.ItemSO.value * amount;
         float price = 0;
-        switch(item.GridType)
+
+        switch (targetedGridType)
         {
             case GridType.caravan:
                 if (item.ItemAcquired)
                 {
                     price -= itemValue * GetVendorSellMultiplayer(item.ItemSO);
-                    Debug.Log(price);
-                    _SoldItems.Remove(item);
+                    _SoldItems.Add(item);
                 }
                 else
                 {
                     price -= itemValue * GetVendorBuyMultiplayer(item.ItemSO);
-                    Debug.Log(price);
                     _BoughtItems.Add(item);
                 }
                 break;
+
             case GridType.vendorToBuy:
                 price += itemValue * GetVendorBuyMultiplayer(item.ItemSO);
-                Debug.Log(price);
-                _BoughtItems.Remove(item);
+                _BoughtItems.Add(item);
                 break;
+
             case GridType.vendorToSell:
                 price += itemValue * GetVendorSellMultiplayer(item.ItemSO);
-                Debug.Log(price);
                 _SoldItems.Add(item);
                 break;
-            default: return;
+
+            default:
+                return;
         }
+
         ChangeTradeBarValue((int)price);
     }
     private void ChangeTradeBarValue(int itemPrice)
@@ -62,7 +70,7 @@ public class TradeMechanic : MonoBehaviourSingleton<TradeMechanic>
         _Slider.value += itemPrice;
         ColorBlock colorBlock = _TradeButton.colors;
 
-        if (_Slider.value >= 0 && (_BoughtItems.Count > 0 || _SoldItems.Count > 0)) 
+        if (_Slider.value > 0 && (_BoughtItems.Count > 0 || _SoldItems.Count > 0)) 
         {
             _Slider.targetGraphic.color = _colorGreen;
             colorBlock.normalColor = _colorGreen;
@@ -87,32 +95,40 @@ public class TradeMechanic : MonoBehaviourSingleton<TradeMechanic>
     }
     public void TradeButton()
     {
+        TradeReferences tradeReferences = TradeReferences.Instance;
         if (_Slider.value >= 0 && (_BoughtItems.Count > 0 || _SoldItems.Count > 0))
         {
 
-            foreach(var item in _BoughtItems)
+            foreach (GridItem item in tradeReferences.CaravanGrid.GridItems)
             {
-                item.ItemAcquired = true;
-                ActiveItemGenerator.OnItemAcquired(item);
-            }
-
-            foreach (GridItem item in _SoldItems)
-            {
-                foreach (GridCell cell in item.GetOccupiedCells())
+                if (!item.ItemAcquired)
                 {
-                    cell.isOccupied = false;
+                    item.ItemAcquired = true;
+                    ActiveItemGenerator.OnItemAcquired(item, item.CurrentStackCount);
                 }
+            }
+            var soldItems = new List<GridItem>(tradeReferences.VendorToSellGrid.GridItems);
+            foreach (GridItem item in soldItems)
+            {
+                if (item.ItemAcquired)
+                {
+                    item.ItemAcquired = false;
+                    
+                    foreach (GridCell cell in item.GetOccupiedCells())
+                    {
+                        cell.isOccupied = false;
+                    }
 
-                item.ItemAcquired = false;
-
-                item.TryAutomaticPlacement(_VendorToBuy);
-                ActiveItemGenerator.OnItemReturned(item);
+                    item.TryAutomaticPlacement(_VendorToBuy, true);
+                    ActiveItemGenerator.OnItemReturned(item, item.CurrentStackCount);
+                }
 
             }
             ResetSlider();
         }
         _BoughtItems.Clear();
         _SoldItems.Clear();
+        CaravanManager.Instance.UpdateCaravanItemStacks();
     }
     private float GetVendorBuyMultiplayer(ItemSO itemToBuy)
     {

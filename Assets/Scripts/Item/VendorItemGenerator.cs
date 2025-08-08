@@ -42,13 +42,14 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
     private GridManager _chest;
     private TradeReferences _tradeReferences;
 
-    public List<ItemSO> ItemsToBuy = new();
+    public Dictionary<ItemSO, int> ItemsToBuy = new();
     public List<GameObject> CreatedItemsToBuy = new();
+    public List<GameObject> ClonedItemsToBuy = new();
 
     private TradeMechanic _tradeMechanic;
 
     /// <summary>
-    /// To DO:
+    /// TODO:
     /// Trzeb dodaæ przelicznik który zmienia mnoznik kiedy sprzeda sie kilka tych samych itemkow
     /// albo kiedy sprzeda sie duzo itemkow danego typu etc.
     /// </summary>
@@ -91,9 +92,12 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
         }
         else
         {
-            foreach (ItemSO item in ItemsToBuy)
+            foreach (ItemSO item in ItemsToBuy.Keys)
             {
-                CreateItem(item);
+                for(int i = 0; i < ItemsToBuy[item]; i++)
+                {
+                    CreateItem(item);
+                }
             }
         }
     }
@@ -105,10 +109,19 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
             {
                 if (item)
                 {
-                    Destroy(item);
+                    item.GetComponent<GridItem>().DestroyItem();
                 }
             }
             _tradeMechanic.ActiveItemGenerator.CreatedItemsToBuy.Clear();
+
+            foreach (var item in _tradeMechanic.ActiveItemGenerator.ClonedItemsToBuy)
+            {
+                if (item)
+                {
+                    item.GetComponent<GridItem>().DestroyItem();
+                }
+            }
+            _tradeMechanic.ActiveItemGenerator.ClonedItemsToBuy.Clear();
 
         }
     }
@@ -145,8 +158,12 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
             for (int i = 0; i < _itemsToGenerate[itemToGenerate]; i++)
             {
                 CreateItem(itemToGenerate);
-                ItemsToBuy.Add(itemToGenerate);
-
+                if (ItemsToBuy.ContainsKey(itemToGenerate))
+                {
+                    ItemsToBuy[itemToGenerate] += 1;
+                }
+                else
+                    ItemsToBuy.Add(itemToGenerate,1);
             }
         }
     }
@@ -155,7 +172,7 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
         List<ItemSO> foundItems = new();
         foreach (var iteminManager in _itemManager.allItems)
         {
-            if (iteminManager.itemtype == type && iteminManager.itemRarity == rarity)
+            if (iteminManager.itemType == type && iteminManager.itemRarity == rarity)
             {
                 foundItems.Add(iteminManager);
             }
@@ -166,8 +183,12 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
 
             ItemSO itemData = foundItems[random];
             CreateItem(itemData);
-            ItemsToBuy.Add(itemData);
-
+            if (ItemsToBuy.ContainsKey(itemData))
+            {
+                ItemsToBuy[itemData]++;
+            }
+            else
+                ItemsToBuy.Add(itemData, 1);
         }
         else
             Debug.Log($"Didn't find item of this type: {type}, and this rarity: {rarity}");
@@ -176,41 +197,65 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
     {
 
         GameObject createdItem = Instantiate(_itemPrefab, _itemHolder);
-        CreatedItemsToBuy.Add(createdItem);
 
         GridItem gridItem = createdItem.GetComponent<GridItem>();
         if (gridTypeToPlaceItems == GridType.vendorToBuy)
         {
             gridItem.Initialize(data, false, GridType.vendorToBuy, _venorToBuy);
-            gridItem.TryAutomaticPlacement(_venorToBuy);
+            gridItem = gridItem.TryAutomaticPlacement(_venorToBuy);
         }
         else if (gridTypeToPlaceItems == GridType.chest)
         {
             gridItem.Initialize(data, false, GridType.chest, _chest);
-            gridItem.TryAutomaticPlacement(_chest);
+            gridItem = gridItem.TryAutomaticPlacement(_chest);
             gridItem.ItemAcquired = true;
         }
+        createdItem = gridItem.gameObject;
+
+        if (!CreatedItemsToBuy.Contains(createdItem)) 
+            CreatedItemsToBuy.Add(createdItem);
     }
-    public void OnItemAcquired(GridItem acquiredItem)
+    public void OnItemAcquired(GridItem acquiredItem, int value)
     {
         CreatedItemsToBuy.Remove(acquiredItem.gameObject);
-        ItemsToBuy.Remove(acquiredItem.ItemSO);
-        //tutaj dodac ze itemy sa przypisane do caravany, ustawic transform zeby itemy byly dzieckiem caravany
-        CaravanManager.Instance.TakeItem(acquiredItem.gameObject);
-        if (acquiredItem.ItemSO.itemtype == ItemType.food && acquiredItem.ItemSO.ration > 0)
-        {
-            ResourceManager.Instance.AddResourceToInventory(acquiredItem);
-        }
+        if (ItemsToBuy[acquiredItem.ItemSO] > value)
+            ItemsToBuy[acquiredItem.ItemSO] -= value;
+        else
+            ItemsToBuy.Remove(acquiredItem.ItemSO);
+
+        CaravanManager.Instance.TakeItem(acquiredItem);
     }
-    public void OnItemReturned(GridItem returnedItem)
+    public void OnItemReturned(GridItem returnedItem, int value)
     {
         CreatedItemsToBuy.Add(returnedItem.gameObject);
-        ItemsToBuy.Add(returnedItem.ItemSO);
-        CaravanManager.Instance.GiveAwayItem(returnedItem.gameObject);
-        if (returnedItem.ItemSO.itemtype == ItemType.food && returnedItem.ItemSO.ration > 0)
+
+        if (ItemsToBuy.ContainsKey(returnedItem.ItemSO))
+            ItemsToBuy[returnedItem.ItemSO] += value;
+        else
+            ItemsToBuy.Add(returnedItem.ItemSO, value);
+
+        CaravanManager.Instance.GiveAwayItem(returnedItem);
+    }
+    public void OnChestItemAcquired(GridItem acquiredItem, int value)
+    {
+        OnItemAcquired(acquiredItem, value);
+        CaravanManager.Instance.UpdateCaravanItemStacks();
+        
+    }
+    public void OnChestItemReturned(GridItem returnedItem, int value, bool oneFromStack = false)
+    {
+        if (!oneFromStack || returnedItem.CurrentStackCount == 1) 
+            OnItemReturned(returnedItem, value);
+        else
         {
-            ResourceManager.Instance.RemoveResourceFromInventory(returnedItem);
+            CreatedItemsToBuy.Add(returnedItem.gameObject);
+
+            if (ItemsToBuy.ContainsKey(returnedItem.ItemSO))
+                ItemsToBuy[returnedItem.ItemSO] += value;
+            else
+                ItemsToBuy.Add(returnedItem.ItemSO, value);
         }
+        CaravanManager.Instance.UpdateCaravanItemStacks();
     }
     public void OnCityExit()
     {
@@ -221,14 +266,14 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
     {
         return
             _vendorBuyMultiplayerForItems.TryGetValue(itemToBuy, out var selectedItemMultiplier) ? selectedItemMultiplier
-            : _vendorBuyMultiplayerForTypes.TryGetValue(itemToBuy.itemtype, out var itemTypeMultiplier) ? itemTypeMultiplier
+            : _vendorBuyMultiplayerForTypes.TryGetValue(itemToBuy.itemType, out var itemTypeMultiplier) ? itemTypeMultiplier
             : 1.2f;
     }
     public float ItemSellMultiplayer(ItemSO itemToSell)
     {
         return
             _vendorSellMultiplayerForItems.TryGetValue(itemToSell, out var selectedItemMultiplier) ? selectedItemMultiplier
-            : _vendorSellMultiplayerForTypes.TryGetValue(itemToSell.itemtype, out var itemTypeMultiplier) ? itemTypeMultiplier
+            : _vendorSellMultiplayerForTypes.TryGetValue(itemToSell.itemType, out var itemTypeMultiplier) ? itemTypeMultiplier
             : 1f;
     }
 }

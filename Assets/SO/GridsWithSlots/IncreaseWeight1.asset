@@ -12,12 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 275cd4aeb7dc91c45bde890a6bb6da08, type: 3}
   m_Name: IncreaseWeight1
   m_EditorClassIdentifier: 
-  GridName: 
+  GridName: IncreaseWeight1
   ItemsToPlaceIn:
-    list: []
+    list:
+    - Key: {fileID: 11400000, guid: 4c157d3a9c046cd41ad4d0ff97ec8b84, type: 2}
+      Value: 2
   ItemsPlacedIn: []
-  CellsPerRow: 030000000400000002000000
+  CellsPerRow: 020000000200000002000000
   DisableCellsAt: []
-  UpgradeType: 5
-  UpgradeValue: 0
+  UpgradeType: 0
+  UpgradeValue: 20
   IsUpgraded: 0

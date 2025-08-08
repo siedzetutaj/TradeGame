@@ -16,7 +16,7 @@ public class DebugItemButton : MonoBehaviour
         GameObject Item = Instantiate(_itemPrefab, transform);
         DebugGridItem debugGridItem = Item.AddComponent<DebugGridItem>();
         debugGridItem.Initialize(ItemSO, false, GridType.debug, null);
-        debugGridItem.TryAutomaticPlacement(Grid);
+        debugGridItem.TryAutomaticPlacement(Grid,true);
         debugGridItem.debugGrid = Grid;
         Grid.AddItem(debugGridItem);
     }

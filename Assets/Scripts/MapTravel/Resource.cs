@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public class Resource : MonoBehaviour
 {
-    public GridItem GridItem;
+    public ItemData ItemData;
     public int MaxAmountValue = 0;
     public int CurrentAmountValue = 0;
     public int PreviousAmountValue = 0;
@@ -15,11 +15,11 @@ public class Resource : MonoBehaviour
     [SerializeField] private TextMeshProUGUI AmountDisplay;
 
     private ResourceManager _resourceManager;
-    public void Initialize(Sprite sprite, int maxAmount, GridItem item)
+    public void Initialize(Sprite sprite, int maxAmount, ItemData item)
     {
         ResourceImage.sprite = sprite;
         MaxAmountValue = maxAmount;
-        GridItem = item;
+        ItemData = item;
     }
     private void Start()
     {

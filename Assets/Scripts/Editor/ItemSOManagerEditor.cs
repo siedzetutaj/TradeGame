@@ -130,7 +130,7 @@ public class ItemSOManagerEditor : Editor
 
     private void ExportItemsToExcel(List<ItemSO> items)
     {
-        items = items.OrderBy(item => item.itemtype)
+        items = items.OrderBy(item => item.itemType)
                      .ThenBy(item => item.itemRarity)
                      .ThenBy(item => item.value)
                      .ToList();
@@ -158,7 +158,7 @@ public class ItemSOManagerEditor : Editor
                 var item = items[i];
                 worksheet.Cell(i + 2, 1).Value = item.itemName;
                 worksheet.Cell(i + 2, 2).Value = item.value;
-                worksheet.Cell(i + 2, 3).Value = item.itemtype.ToString();
+                worksheet.Cell(i + 2, 3).Value = item.itemType.ToString();
                 worksheet.Cell(i + 2, 4).Value = item.itemRarity.ToString();
                 worksheet.Cell(i + 2, 5).Value = item.ration.ToString();
             }

@@ -1,12 +1,16 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 
 public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
 {
     public List<GameObject> ItemsInCaravan = new();
+    [NonSerialized] public List<GameObject> ClonedItemsFromCaravan = new();
+    public List<ItemData> CaravanItemStacks = new();    
+
     [SerializeField] private GridManager _caravanGrid;
 
     [SerializeField] private ItemsSaveDataSO _caravanItemsSaveData;
@@ -46,7 +50,7 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
     [SerializeField] private TextMeshProUGUI _maxWeightDisplay;
     [SerializeField] private TextMeshProUGUI _currentWeightDisplay;
 
-
+    
     private void Start()
     {
         MaxWeight = _MaxWeight;
@@ -55,7 +59,10 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
         _currentWeightDisplay.text= _CurrentWeight.ToString();
         LoadItemsFromSaveData();
     }
-
+    private void OnEnable()
+    {
+        RestoreCaravanItemsFromStacks();
+    }
     public bool IsHeavierThenCaravanCapacity(int itemWeight)
     {
         int tempCapacity = CurrentWeight;
@@ -67,71 +74,80 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
         CurrentWeight += itemWeight;
         return false;
     }
-    public void TakeItem( GameObject ItemObject)
+    public void TakeItem(GridItem item)
     {
-        ItemObject.transform.SetParent(_caravanItemHolderTransform);
-        ItemsInCaravan.Add(ItemObject);
-        SaveItemsToSaveData();
+        item.transform.SetParent(_caravanItemHolderTransform);
+        
+        if(!ItemsInCaravan.FirstOrDefault(x=>x==item.gameObject))
+            ItemsInCaravan.Add(item.gameObject);
     }
     public void ChangeWeightWalue(int itemWeight)
     {
         CurrentWeight += itemWeight;
     }
-    public void GiveAwayItem(GameObject ItemObject)
+    public void GiveAwayItem(GridItem item)
     {
-        ItemObject.transform.SetParent(_itemHolderTransform);
-        ItemsInCaravan.Remove(ItemObject);
-        SaveItemsToSaveData();
-    }
-    public void OnItemUsedAsRation(GridItem item)
-    {
+        item.transform.SetParent(_itemHolderTransform);
         ItemsInCaravan.Remove(item.gameObject);
-        item.ClearOccupiedCells();
-        Destroy(item.gameObject);
+    }
+    public void OnItemUsedAsRation(ItemData item, int AmountUsed)
+    {
+        int AmountAfterUse = item.StackCount - AmountUsed;
+
+        ChangeWeightWalue(-item.ItemSO.weight * AmountUsed);
+
+        if (AmountAfterUse == 0)
+        {
+            CaravanItemStacks.Remove(item);
+            return;
+        }
+        item.StackCount = AmountAfterUse;
     }
     public void LoadItemsFromSaveData()
     {
-        ItemsInCaravan.Clear();
-        if (_caravanItemsSaveData == null || _caravanItemsSaveData.ItemsPlacedIn == null)
+        if (_caravanItemsSaveData.IsSavingEnabled)
         {
-            Debug.LogWarning("No items to load from save data.");
-            return;
-        }
-        foreach (ItemSaveData itemData in _caravanItemsSaveData.ItemsPlacedIn)
-        {
-            GameObject itemObject = Instantiate(
-                _caravanItemsSaveData.ItemPrefab, _caravanItemHolderTransform);
-
-            GridItem gridItem = itemObject.GetComponent<GridItem>();
-            gridItem.Initialize(itemData.ItemSO, true, GridType.caravan, _caravanGrid);
-            gridItem.TryAutomaticPlacement(_caravanGrid);
-
-            ItemsInCaravan.Add(itemObject);
-
-            if (itemData.ItemSO.itemtype == ItemType.food && itemData.ItemSO.ration > 0)
+            ItemsInCaravan.Clear();
+            if (_caravanItemsSaveData == null || _caravanItemsSaveData.ItemsPlacedIn == null)
             {
-                ResourceManager.Instance.AddResourceToInventory(gridItem);
+                Debug.LogWarning("No items to load from save data.");
+                return;
             }
-            CurrentWeight += itemData.ItemSO.weight;
+            foreach (ItemData itemData in _caravanItemsSaveData.ItemsPlacedIn)
+            {
+                GameObject itemObject = Instantiate(
+                    _caravanItemsSaveData.ItemPrefab, _caravanItemHolderTransform);
+
+                GridItem gridItem = itemObject.GetComponent<GridItem>();
+                gridItem.Initialize(itemData.ItemSO, true, GridType.caravan, _caravanGrid, itemData.StackCount);
+                gridItem.TryAutomaticPlacement(_caravanGrid,true);
+
+                ItemsInCaravan.Add(itemObject);
+
+                CurrentWeight += itemData.ItemSO.weight * itemData.StackCount;
+            }
         }
     }
     public void SaveItemsToSaveData()
     {
-        if (_caravanItemsSaveData == null)
+        if (_caravanItemsSaveData.IsSavingEnabled)
         {
-            Debug.LogError("CaravanItemsSaveData is not assigned.");
-            return;
-        }
-        _caravanItemsSaveData.ItemsPlacedIn.Clear();
-        foreach (GameObject itemObject in ItemsInCaravan)
-        {
-            GridItem gridItem = itemObject.GetComponent<GridItem>();
-            if (gridItem != null && gridItem.ItemSO != null)
+            if (_caravanItemsSaveData == null)
             {
-                ItemSaveData itemData = new ItemSaveData(
-                    gridItem.ItemSO, gridItem.ShapeOffsets,
-                    gridItem.Initialcell.listPosition, 1);
-                _caravanItemsSaveData.ItemsPlacedIn.Add(itemData);
+                Debug.LogError("CaravanItemsSaveData is not assigned.");
+                return;
+            }
+            _caravanItemsSaveData.ItemsPlacedIn.Clear();
+            foreach (GameObject itemObject in ItemsInCaravan)
+            {
+                GridItem gridItem = itemObject.GetComponent<GridItem>();
+                if (gridItem != null && gridItem.ItemSO != null)
+                {
+                    ItemData itemData = new ItemData(
+                        gridItem.ItemSO, gridItem.ShapeOffsets,
+                        gridItem.Initialcell.listPosition, gridItem.CurrentStackCount);
+                    _caravanItemsSaveData.ItemsPlacedIn.Add(itemData);
+                }
             }
         }
     }
@@ -166,5 +182,57 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
         }
         _caravanGrid.InitializeGrid();
         LoadItemsFromSaveData();
+    }
+    public void UpdateCaravanItemStacks()
+    {
+        CaravanItemStacks.Clear();
+        foreach (var itemObj in ItemsInCaravan)
+        {
+            var gridItem = itemObj.GetComponent<GridItem>();
+            if (gridItem != null && gridItem.ItemSO != null)
+            {
+                CaravanItemStacks.Add(new ItemData(
+                    gridItem.ItemSO,
+                    new List<Vector2Int>(gridItem.ShapeOffsets),
+                    gridItem.Initialcell != null ? gridItem.Initialcell.listPosition : Vector2Int.zero,
+                    gridItem.CurrentStackCount
+                ));
+            }
+        }
+    }
+    public void RestoreCaravanItemsFromStacks()
+    {
+        // Usuñ stare obiekty
+        foreach (var item in ItemsInCaravan)
+        {
+            if(item)
+                item.GetComponent<GridItem>().DestroyItem();
+        }
+        ItemsInCaravan.Clear(); 
+        
+        foreach (var item in ClonedItemsFromCaravan)
+        {
+            if (item)
+                item.GetComponent<GridItem>().DestroyItem();
+        }
+        ClonedItemsFromCaravan.Clear();
+
+        CurrentWeight = 0;
+
+        foreach (var stackData in CaravanItemStacks)
+        {
+            GameObject itemObj = Instantiate(_caravanItemsSaveData.ItemPrefab, _caravanItemHolderTransform);
+            var gridItem = itemObj.GetComponent<GridItem>();
+            gridItem.Initialize(stackData.ItemSO, true, GridType.caravan, _caravanGrid, stackData.StackCount);
+            gridItem.SetShapeOffsets(stackData.ShapeOffsets);
+            // Ustaw pozycjê startow¹
+            var cell = _caravanGrid.GetCellAtPosition(stackData.InitialCellPostion);
+            if (cell != null)
+            {
+                gridItem.ItemTransitionSetup(_caravanGrid, cell);
+            }
+            ItemsInCaravan.Add(itemObj);
+            ChangeWeightWalue(stackData.ItemSO.weight * stackData.StackCount);
+        }
     }
 }

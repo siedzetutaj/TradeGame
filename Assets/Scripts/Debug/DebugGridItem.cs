@@ -5,7 +5,7 @@ public class DebugGridItem : GridItem
 {
     public DebugGridForCreatingGridWithSlots debugGrid;
     public override void Initialize(ItemSO itemSO, bool isItemAcquired,
-        GridType type, GridManager manager)
+        GridType type, GridManager manager, int StackCount = 1)
     {
         base.Initialize(itemSO, isItemAcquired, type, manager);
 

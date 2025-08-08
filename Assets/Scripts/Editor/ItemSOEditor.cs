@@ -21,7 +21,7 @@ public class ItemSOEditor : Editor
         
         ItemSO item = (ItemSO)target;
 
-        if (item.itemtype == ItemType.food)
+        if (item.itemType == ItemType.food)
         {
             item.ration = EditorGUILayout.FloatField("Ration", item.ration);
         }

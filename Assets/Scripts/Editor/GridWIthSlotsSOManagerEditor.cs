@@ -13,7 +13,7 @@ public class GridWIthSlotsSOManagerEditor : Editor
         if (GUILayout.Button("Reset All Upgrades", GUILayout.Height(30)))
         {
             ((GridWIthSlotsSOManager)target).ResetSavedValues();
-            Debug.Log("Grids reset!");
+            Debug.Log("Upgrades reseted!");
         }      
         
         if (GUILayout.Button("Clear empty slots in list", GUILayout.Height(30)))

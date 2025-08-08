@@ -11,6 +11,7 @@ public class TradeReferences : MonoBehaviourSingleton<TradeReferences>
     public GridManager VendorToSellGrid;
     public GridManager CaravanGrid;
     public GridManager ChestGrid;
+
     public GridManagerWithSlots UpgradeGrid;
     
     public GameObject Trade;

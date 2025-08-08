@@ -8,10 +8,10 @@ public class ItemSO : ScriptableObject
     public string description;
     public Sprite sprite;
     public int value;
-    public int maxCount;
+    public int maxStackCount;
     public int weight;
     public ItemRarity itemRarity;
-    public ItemType itemtype;
+    public ItemType itemType;
     [HideInInspector] public float ration;
     public List<Vector2Int> shapeOffsets = new List<Vector2Int>(); // Offsets for shape cells
 }
