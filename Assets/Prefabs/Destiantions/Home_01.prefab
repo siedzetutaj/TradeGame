@@ -171,6 +171,7 @@ MonoBehaviour:
   _itemHolder: {fileID: 0}
   _itemManager: {fileID: 11400000, guid: c0ff80916d84b0b4bba80ef42717da14, type: 2}
   _itemPrefab: {fileID: 8990697463433708492, guid: f12e04f8756d8584cb2ed634b02a0dc0, type: 3}
+  _exhangeItemPrefab: {fileID: 8990697463433708492, guid: 4ad6db022e3b74f458fe6360679a8974, type: 3}
   gridTypeToPlaceItems: 4
   _generatedItemTypes:
     list:
@@ -196,8 +197,8 @@ MonoBehaviour:
     list: []
   _vendorSellMultiplayerForItems:
     list: []
-  ItemsToBuy: []
   CreatedItemsToBuy: []
+  ClonedItemsToBuy: []
 --- !u!1 &8266286465319228140
 GameObject:
   m_ObjectHideFlags: 0

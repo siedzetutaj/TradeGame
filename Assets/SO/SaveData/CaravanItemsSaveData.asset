@@ -18,34 +18,36 @@ MonoBehaviour:
     - {x: 0, y: 1}
     - {x: 0, y: 0}
     InitialCellPostion: {x: 1, y: 0}
-    Value: 1
+    StackCount: 0
   - ItemSO: {fileID: 11400000, guid: 32eeb446a48bff6439184a708256abe9, type: 2}
     ShapeOffsets:
     - {x: 0, y: 1}
     - {x: 0, y: 0}
     InitialCellPostion: {x: 1, y: 1}
-    Value: 1
+    StackCount: 0
   - ItemSO: {fileID: 11400000, guid: 32eeb446a48bff6439184a708256abe9, type: 2}
     ShapeOffsets:
     - {x: 0, y: 1}
     - {x: 0, y: 0}
     InitialCellPostion: {x: 1, y: 2}
-    Value: 1
+    StackCount: 0
   - ItemSO: {fileID: 11400000, guid: 32eeb446a48bff6439184a708256abe9, type: 2}
     ShapeOffsets:
     - {x: 0, y: 1}
     - {x: 0, y: 0}
     InitialCellPostion: {x: 1, y: 0}
-    Value: 1
+    StackCount: 0
   - ItemSO: {fileID: 11400000, guid: 32eeb446a48bff6439184a708256abe9, type: 2}
     ShapeOffsets:
     - {x: 0, y: 1}
     - {x: 0, y: 0}
     InitialCellPostion: {x: 3, y: 0}
-    Value: 1
+    StackCount: 0
   - ItemSO: {fileID: 11400000, guid: 335915def563f4c4eac28365829be279, type: 2}
     ShapeOffsets:
     - {x: 0, y: 0}
     InitialCellPostion: {x: 2, y: 1}
-    Value: 1
+    StackCount: 0
   ItemPrefab: {fileID: 8990697463433708492, guid: f12e04f8756d8584cb2ed634b02a0dc0, type: 3}
+  ItemToExhangePrefab: {fileID: 8990697463433708492, guid: 4ad6db022e3b74f458fe6360679a8974, type: 3}
+  IsSavingEnabled: 0

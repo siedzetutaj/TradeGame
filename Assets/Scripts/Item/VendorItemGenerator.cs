@@ -9,6 +9,7 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
     [SerializeField] private Transform _itemHolder;
     [SerializeField] private ItemSOManager _itemManager;
     [SerializeField] private GameObject _itemPrefab;
+    [SerializeField] private GameObject _exhangeItemPrefab;
     [SerializeField] private GridType gridTypeToPlaceItems = GridType.vendorToBuy;
 
 
@@ -163,7 +164,7 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
                     ItemsToBuy[itemToGenerate] += 1;
                 }
                 else
-                    ItemsToBuy.Add(itemToGenerate,1);
+                    ItemsToBuy.Add(itemToGenerate, 1);
             }
         }
     }
@@ -206,13 +207,26 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
         }
         else if (gridTypeToPlaceItems == GridType.chest)
         {
-            gridItem.Initialize(data, false, GridType.chest, _chest);
-            gridItem = gridItem.TryAutomaticPlacement(_chest);
-            gridItem.ItemAcquired = true;
+            //TODO: usun if potem 
+            if (data.itemType == ItemType.exchangeItem)
+            {
+                Destroy(createdItem);
+                createdItem = Instantiate(_exhangeItemPrefab, _itemHolder);
+                ExchangeGridItem exchangeGridItem = createdItem.GetComponent<ExchangeGridItem>();
+                exchangeGridItem.Initialize(data, false, GridType.chest, _chest);
+                exchangeGridItem.ItemAcquired = true;
+                gridItem = exchangeGridItem;
+            }
+            else
+            {
+                gridItem.Initialize(data, false, GridType.chest, _chest);
+                gridItem = gridItem.TryAutomaticPlacement(_chest);
+                gridItem.ItemAcquired = true;
+            }
         }
         createdItem = gridItem.gameObject;
 
-        if (!CreatedItemsToBuy.Contains(createdItem)) 
+        if (!CreatedItemsToBuy.Contains(createdItem))
             CreatedItemsToBuy.Add(createdItem);
     }
     public void OnItemAcquired(GridItem acquiredItem, int value)
@@ -239,7 +253,7 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
     public void OnChestItemAcquired(GridItem acquiredItem, int value)
     {
         OnItemAcquired(acquiredItem, value);
-        CaravanManager.Instance.UpdateCaravanItemStacks();
+        CaravanManager.Instance.UpdateCaravanItemsData();
         
     }
     public void OnChestItemReturned(GridItem returnedItem, int value, bool oneFromStack = false)
@@ -255,7 +269,7 @@ public class VendorItemGenerator : MonoBehaviourSingleton<VendorItemGenerator>
             else
                 ItemsToBuy.Add(returnedItem.ItemSO, value);
         }
-        CaravanManager.Instance.UpdateCaravanItemStacks();
+        CaravanManager.Instance.UpdateCaravanItemsData();
     }
     public void OnCityExit()
     {

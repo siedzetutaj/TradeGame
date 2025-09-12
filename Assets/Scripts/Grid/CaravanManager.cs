@@ -7,9 +7,9 @@ using UnityEngine;
 
 public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
 {
-    public List<GameObject> ItemsInCaravan = new();
+    [NonSerialized] public List<GameObject> ItemsInCaravan = new();
     [NonSerialized] public List<GameObject> ClonedItemsFromCaravan = new();
-    public List<ItemData> CaravanItemStacks = new();    
+    public List<ItemData> CaravanItemsData = new();    
 
     [SerializeField] private GridManager _caravanGrid;
 
@@ -61,7 +61,7 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
     }
     private void OnEnable()
     {
-        RestoreCaravanItemsFromStacks();
+        RestoreCaravanItemsData();
     }
     public bool IsHeavierThenCaravanCapacity(int itemWeight)
     {
@@ -98,7 +98,7 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
 
         if (AmountAfterUse == 0)
         {
-            CaravanItemStacks.Remove(item);
+            CaravanItemsData.Remove(item);
             return;
         }
         item.StackCount = AmountAfterUse;
@@ -183,15 +183,17 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
         _caravanGrid.InitializeGrid();
         LoadItemsFromSaveData();
     }
-    public void UpdateCaravanItemStacks()
+    public void UpdateCaravanItemsData()
     {
-        CaravanItemStacks.Clear();
+        CaravanItemsData.Clear();
         foreach (var itemObj in ItemsInCaravan)
         {
+            if (itemObj == null) continue; 
+
             var gridItem = itemObj.GetComponent<GridItem>();
             if (gridItem != null && gridItem.ItemSO != null)
             {
-                CaravanItemStacks.Add(new ItemData(
+                CaravanItemsData.Add(new ItemData(
                     gridItem.ItemSO,
                     new List<Vector2Int>(gridItem.ShapeOffsets),
                     gridItem.Initialcell != null ? gridItem.Initialcell.listPosition : Vector2Int.zero,
@@ -200,7 +202,7 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
             }
         }
     }
-    public void RestoreCaravanItemsFromStacks()
+    public void RestoreCaravanItemsData()
     {
         // Usuñ stare obiekty
         foreach (var item in ItemsInCaravan)
@@ -219,10 +221,16 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
 
         CurrentWeight = 0;
 
-        foreach (var stackData in CaravanItemStacks)
+        foreach (var stackData in CaravanItemsData)
         {
-            GameObject itemObj = Instantiate(_caravanItemsSaveData.ItemPrefab, _caravanItemHolderTransform);
-            var gridItem = itemObj.GetComponent<GridItem>();
+            GameObject itemObj = null;
+            
+            if (stackData.ItemSO.itemType == ItemType.exchangeItem)
+                itemObj = Instantiate(_caravanItemsSaveData.ItemToExhangePrefab, _caravanItemHolderTransform);
+            else
+                itemObj = Instantiate(_caravanItemsSaveData.ItemPrefab, _caravanItemHolderTransform);
+            
+            GridItem gridItem = itemObj.GetComponent<GridItem>();
             gridItem.Initialize(stackData.ItemSO, true, GridType.caravan, _caravanGrid, stackData.StackCount);
             gridItem.SetShapeOffsets(stackData.ShapeOffsets);
             // Ustaw pozycjê startow¹
@@ -233,6 +241,7 @@ public class CaravanManager : MonoBehaviourSingleton<CaravanManager>
             }
             ItemsInCaravan.Add(itemObj);
             ChangeWeightWalue(stackData.ItemSO.weight * stackData.StackCount);
+            gridItem.SetBackgroundColor(gridItem.green);
         }
     }
 }

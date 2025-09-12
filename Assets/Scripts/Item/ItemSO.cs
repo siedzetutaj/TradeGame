@@ -26,7 +26,9 @@ public enum ItemType
     potion,
     magic,
     material,
-    debug
+    debug,
+    rawFood,
+    exchangeItem
 }
 public enum ItemRarity
 {

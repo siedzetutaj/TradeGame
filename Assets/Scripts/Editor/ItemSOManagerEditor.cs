@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using ClosedXML.Excel; // Add this for Excel functionality
-using System.IO;
+using ClosedXML.Excel; 
 using System.Linq;
-using Codice.Client.BaseCommands.Merge.Xml;
 
 [CustomEditor(typeof(ItemSOManager))]
 public class ItemSOManagerEditor : Editor

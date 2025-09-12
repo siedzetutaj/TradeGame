@@ -5,6 +5,7 @@ public class ItemsSaveDataSO : ScriptableObject
 {
     public List<ItemData> ItemsPlacedIn = new();
     public GameObject ItemPrefab;
+    public GameObject ItemToExhangePrefab;
     public bool IsSavingEnabled;
     public void ResetSavedValues()
     {

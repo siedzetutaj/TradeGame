@@ -149,7 +149,7 @@ public class ResourceManager : MonoBehaviourSingleton<ResourceManager>
 
         _resourcesToGenerate.Clear();
 
-        foreach (ItemData item in CaravanManager.Instance.CaravanItemStacks)
+        foreach (ItemData item in CaravanManager.Instance.CaravanItemsData)
         {
             if(item == null) continue;
             if (item.ItemSO.itemType==ItemType.food)

@@ -10,20 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 921267aecbeb44d4dbe87da4699d611f, type: 3}
-  m_Name: Flour
+  m_Name: ExchangeItem
   m_EditorClassIdentifier: 
-  itemName: Flour
-  description: to make bread and other things from this withe poweder
-  sprite: {fileID: 21300000, guid: 046f821c76a004e4c91b9f27ee906194, type: 3}
-  value: 6
-  maxStackCount: 0
-  weight: 5
+  itemName: ExchangeItem
+  description: 'For Exchanging '
+  sprite: {fileID: 21300000, guid: 745c230e29c9393469cb614114618353, type: 3}
+  value: 0
+  maxStackCount: 10
+  weight: 0
   itemRarity: 0
-  itemType: 9
+  itemType: 10
   ration: 0
   shapeOffsets:
-  - {x: 1, y: 1}
   - {x: 0, y: 0}
-  - {x: 1, y: 0}
-  - {x: 0, y: -1}
-  - {x: 1, y: -1}

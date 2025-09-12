@@ -10,10 +10,9 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     /*
      * TODO:
      * Naciœniecie prawym i scrollowanie ¿eby wyci¹gn¹æ wiecej itemów
-     * Save
-     * Upgrady
-     * Cofniecie rzeczy przy wyjsciu bez placenia
-     * Co ze zwrotami 
+     * Upgrady - stackowanie nie jest wrzucone do tego (tryStack)
+     * Co ze zwrotami ???
+     * Pomarañczowy kolor i ogarniêcie DiffrentAcquiredStackCount
      */
 
 
@@ -27,16 +26,18 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public int CurrentStackCount = 0;
     public bool IsItemStacked = false;
 
+
     [SerializeField] protected GridManager _gridManager;
-    [SerializeField] protected TextMeshProUGUI _ItemStackCounterTMP;
+    [SerializeField] protected TextMeshProUGUI _itemStackCounterTMP;
+    [SerializeField] protected Image _itemImage;
 
     [NonSerialized] public GridItem OrginalStackedItem;
+    [NonSerialized] public int DiffrentAcquiredStackCount;
+    protected bool IsItemFromDiffrentAcquiredStack = false;
 
     protected Canvas _canvas;
     protected RectTransform _rectTransform;
     protected Vector3 _offset;
-    protected string _bgAddress = "itembg";
-    protected List<GameObject> _bgCells = new();
 
     protected float _lastClickTime = 0f;
     protected const float _doubleClickThreshold = 0.3f;
@@ -46,6 +47,13 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     protected TradeReferences _tradeReference;
 
     protected int StackCountBeforeStacking = 0;
+
+    public readonly Color red = new Color(1f, 0f, 0f, 0.439f);
+    public readonly Color green = new Color(0f, 1f, 0f, 0.439f);
+    public readonly Color orange = new Color(1f, 0.5f, 0f, 0.439f);
+    public readonly Color yellow = new Color(1f, 1f, 0f, 0.439f);
+    public readonly Color defaultColor = new Color(0.745f, 0.745f, 0.745f, 0.439f);
+    public Color currentColor;
 
     #region Setup
     public virtual void Initialize(ItemSO itemSO, bool isItemAcquired,
@@ -63,7 +71,7 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
         SimpleInitialize();
 
-        GetComponent<Image>().sprite = ItemSO.sprite;
+        _itemImage.sprite = ItemSO.sprite;
     }
     public void SimpleInitialize()
     {
@@ -72,8 +80,10 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         _gridManager.GridItems.Add(this);
         UpdateStackCounterTMP();
         GraphicOffsetSetup();
+        currentColor = defaultColor;
+        DiffrentAcquiredStackCount = 0;
     }
-    protected void OnEnable()
+    protected virtual void OnEnable()
     {
         _canvas = GetComponentInParent<Canvas>();
         _rectTransform = GetComponent<RectTransform>();
@@ -162,12 +172,20 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     {
         GridCell cell = gridManager.GetNearestCell(transform.position);
 
-        if (TryStackItem(gridManager, cell))
+        GridItem itemToStack = TryStackItem(gridManager, cell);
+
+        if (gridManager.gridType == GridType && itemToStack != null)
         {
+            StackItem(gridManager, itemToStack);
+            if (itemToStack.ItemAcquired != ItemAcquired || itemToStack.DiffrentAcquiredStackCount > 0)
+            {
+                itemToStack.SetBackgroundColor(orange);
+                itemToStack.DiffrentAcquiredStackCount += CurrentStackCount;
+            }
             return;
         }
 
-        if (!IsValidPlacement(gridManager, cell))
+        if (!IsValidPlacement(gridManager, cell) && itemToStack == null)
         {
             ItemCanNotBePlacedInThisGrid();
             return;
@@ -179,7 +197,7 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             return;
         }
 
-        HandleGridSpecificPlacement(gridManager, cell);
+        HandleGridSpecificPlacement(gridManager, cell, itemToStack);
     }
     private bool IsValidPlacement(GridManager gridManager, GridCell cell)
     {
@@ -187,7 +205,7 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             && !cell.isOccupied
             && gridManager.IsWithinBounds(_tempShapeOffsets, cell.listPosition);
     }
-    private void HandleGridSpecificPlacement(GridManager gridManager, GridCell cell)
+    private void HandleGridSpecificPlacement(GridManager gridManager, GridCell cell, GridItem itemToStack)
     {
         var trade = TradeReferences.Instance;
         var caravan = CaravanManager.Instance;
@@ -195,19 +213,20 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         switch (gridManager.gridType)
         {
             case GridType.caravan when !caravan.IsHeavierThenCaravanCapacity(ItemSO.weight * CurrentStackCount):
-                HandleCaravanPlacement(gridManager, cell);
+                HandleCaravanPlacement(gridManager, cell, itemToStack);
                 break;
 
-            case GridType.vendorToBuy when GridType == GridType.caravan && !ItemAcquired:
-                CompleteTradePlacement(gridManager, cell, -ItemSO.weight * CurrentStackCount);
+            case GridType.vendorToBuy when GridType == GridType.caravan && (!ItemAcquired || DiffrentAcquiredStackCount > 0):
+                CompleteTradePlacement(gridManager, cell, itemToStack, -ItemSO.weight * CurrentStackCount, defaultColor);
                 break;
 
-            case GridType.vendorToSell when GridType == GridType.caravan && ItemAcquired:
-                CompleteTradePlacement(gridManager, cell, -ItemSO.weight * CurrentStackCount);
+            case GridType.vendorToSell when GridType == GridType.caravan && (ItemAcquired || DiffrentAcquiredStackCount > 0):
+                CompleteTradePlacement(gridManager, cell, itemToStack, -ItemSO.weight * CurrentStackCount, defaultColor);
                 break;
 
             case GridType.chest when GridType == GridType.caravan:
-                HandleChestPlacement(gridManager, cell);
+                HandleChestPlacement(gridManager, cell, itemToStack);
+                SetBackgroundColor(defaultColor);
                 break;
 
             case GridType.upgrade when GridType == GridType.caravan:
@@ -219,20 +238,29 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 break;
         }
     }
-    private void HandleCaravanPlacement(GridManager gridManager, GridCell cell)
+    private void HandleCaravanPlacement(GridManager gridManager, GridCell cell, GridItem itemToStack)
     {
         if (GridType == GridType.vendorToBuy && !ItemAcquired)
         {
-            CompleteTradePlacement(gridManager, cell, 0);
+            CompleteTradePlacement(gridManager, cell, itemToStack, 0, red);
         }
         else if (GridType == GridType.vendorToSell && ItemAcquired)
         {
-            CompleteTradePlacement(gridManager, cell, 0);
+            CompleteTradePlacement(gridManager, cell, itemToStack, 0, green);
         }
         else if (GridType == GridType.chest)
         {
-            ItemTransitionSetup(gridManager, cell);
-            TradeMechanic.Instance.ActiveItemGenerator.OnChestItemAcquired(this, StackCountBeforeStacking);
+            SetBackgroundColor(green);
+            if (itemToStack == null)
+            {
+                ItemTransitionSetup(gridManager, cell);
+                TradeMechanic.Instance.ActiveItemGenerator.OnChestItemAcquired(this, CurrentStackCount);
+            }
+            else
+            {
+                StackItem(gridManager, itemToStack);             
+                TradeMechanic.Instance.ActiveItemGenerator.OnChestItemAcquired(itemToStack, StackCountBeforeStacking);
+            }
         }
         else if (GridType == GridType.upgrade)
         {
@@ -243,15 +271,40 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             ItemCanNotBePlacedInThisGrid();
         }
     }
-    private void CompleteTradePlacement(GridManager gridManager, GridCell cell, int weightChange)
+    protected virtual void CompleteTradePlacement(GridManager gridManager, GridCell cell, GridItem itemToStack, int weightChange, Color color)
     {
-        ItemTransitionSetup(gridManager, cell);
-        TradeMechanic.Instance.CalculatePrice(this, GridType, CurrentStackCount);
+        if (itemToStack == null) 
+        {
+            if (DiffrentAcquiredStateCheck(gridManager, cell))
+                ItemTransitionSetup(gridManager, cell);
+            else
+                return;
+        }
+        else
+        {
+            StackItem(gridManager, itemToStack);
+            if (itemToStack.ItemAcquired != ItemAcquired)
+            {
+                itemToStack.SetBackgroundColor(orange);
+                itemToStack.DiffrentAcquiredStackCount += CurrentStackCount;
+            }
+            GridType = itemToStack.GridType;
+        }
+
+        SetBackgroundColor(color);
         CaravanManager.Instance.ChangeWeightWalue(weightChange);
+        TradeMechanic.Instance.CalculatePrice(this, GridType, CurrentStackCount);
     }
-    private void HandleChestPlacement(GridManager gridManager, GridCell cell)
+    private void HandleChestPlacement(GridManager gridManager, GridCell cell, GridItem itemToStack)
     {
-        ItemTransitionSetup(gridManager, cell);
+        if (itemToStack == null) 
+        {
+            ItemTransitionSetup(gridManager, cell);
+        }
+        else
+        {
+            StackItem(gridManager, itemToStack);
+        }
         TradeMechanic.Instance.ActiveItemGenerator.OnChestItemReturned(this, CurrentStackCount);
         CaravanManager.Instance.ChangeWeightWalue(-ItemSO.weight * CurrentStackCount);
     }
@@ -264,12 +317,106 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     }
     private void DragOneFromStack(PointerEventData eventData)
     {
-        GridItem ClonedGridItem = CloningGridItem();
+        GridItem ClonedGridItem = CloningGridItem(1);
 
+        if (DiffrentAcquiredStackCount > 0)
+        {
+            if (ItemAcquired)
+                DiffrentAcquiredStateSetup(ClonedGridItem, false, red, 1);
+            else
+                DiffrentAcquiredStateSetup(ClonedGridItem, true, green, 1);
+
+            if (DiffrentAcquiredStackCount == 0)
+                SetBackgroundColor(ItemAcquired ? green : red);
+
+        }
         ClonedGridItem.OrginalStackedItem = this;
         eventData.pointerDrag = ClonedGridItem.gameObject;
 
         ClonedGridItem.SettingUpDragVariables(eventData);
+    }
+    private bool DiffrentAcquiredStateCheck(GridManager gridManager, GridCell cell)
+    {
+        if (DiffrentAcquiredStackCount > 0)
+        {
+            if (gridManager.gridType == GridType.vendorToBuy)
+            {
+                GridItem ClonedGridItem = CloningGridItem(DiffrentAcquiredStackCount);
+                ClonedGridItem.Initialcell = Initialcell;
+
+                if (ItemAcquired)
+                {
+                    SetBackgroundColor(green);
+                    DiffrentAcquiredStateSetup(ClonedGridItem, false, defaultColor, DiffrentAcquiredStackCount);
+                    
+                    ItemCanNotBePlacedInThisGrid();
+                    
+                    ClonedGridItem.ItemTransitionSetup(gridManager, cell);
+                    ClonedGridItem.IsItemFromDiffrentAcquiredStack = false;
+
+                    CaravanManager.Instance.ChangeWeightWalue(-ClonedGridItem.ItemSO.weight * ClonedGridItem.CurrentStackCount);
+                    TradeMechanic.Instance.CalculatePrice(ClonedGridItem, ClonedGridItem.GridType, ClonedGridItem.CurrentStackCount);
+                }
+                else
+                {
+                    SetBackgroundColor(defaultColor);
+                    DiffrentAcquiredStateSetup(ClonedGridItem, true, green, DiffrentAcquiredStackCount);
+                    
+                    ItemTransitionSetup(gridManager, cell);
+                    
+                    ClonedGridItem.ItemCanNotBePlacedInThisGrid();
+                    ClonedGridItem.IsItemFromDiffrentAcquiredStack = false;
+
+                    CaravanManager.Instance.ChangeWeightWalue(-ItemSO.weight * CurrentStackCount);
+                    TradeMechanic.Instance.CalculatePrice(this, GridType, CurrentStackCount);
+                }
+                return false;
+            }
+            else if (gridManager.gridType == GridType.vendorToSell)
+            {
+                GridItem ClonedGridItem = CloningGridItem(DiffrentAcquiredStackCount);
+                ClonedGridItem.Initialcell = Initialcell;
+
+                if (ItemAcquired)
+                {
+                    SetBackgroundColor(defaultColor);
+                    DiffrentAcquiredStateSetup(ClonedGridItem, false, red, DiffrentAcquiredStackCount);
+
+                    ItemTransitionSetup(gridManager, cell);
+
+                    ClonedGridItem.ItemCanNotBePlacedInThisGrid();
+                    ClonedGridItem.IsItemFromDiffrentAcquiredStack = false;
+
+                    CaravanManager.Instance.ChangeWeightWalue(-ItemSO.weight * CurrentStackCount);
+                    TradeMechanic.Instance.CalculatePrice(this, GridType, CurrentStackCount);
+                }
+                else
+                {
+                    SetBackgroundColor(red);
+                    DiffrentAcquiredStateSetup(ClonedGridItem, true, defaultColor, DiffrentAcquiredStackCount);
+                   
+                    ItemCanNotBePlacedInThisGrid();
+
+                    ClonedGridItem.ItemTransitionSetup(gridManager, cell);
+                    ClonedGridItem.IsItemFromDiffrentAcquiredStack = false;
+
+                    CaravanManager.Instance.ChangeWeightWalue(-ClonedGridItem.ItemSO.weight * ClonedGridItem.CurrentStackCount);
+                    TradeMechanic.Instance.CalculatePrice(ClonedGridItem, ClonedGridItem.GridType, ClonedGridItem.CurrentStackCount);
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+    private void DiffrentAcquiredStateSetup(GridItem ClonedGridItem, bool AcquiredState, Color color, int StackAmount)
+    {
+        ClonedGridItem.ItemAcquired = AcquiredState;
+        ClonedGridItem.SetBackgroundColor(color);
+        DiffrentAcquiredStackCount -= StackAmount;
+        ClonedGridItem.IsItemFromDiffrentAcquiredStack = true;
+
+        ClonedGridItem.CurrentStackCount = StackAmount;
+        ClonedGridItem.UpdateStackCounterTMP();
     }
     private void DragSetup(PointerEventData eventData)
     {
@@ -332,6 +479,8 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             if(TryAutomaticPlacement(_tradeReference.ChestGrid, isLeftClick))
             {
+                SetBackgroundColor(defaultColor);
+
                 if (isLeftClick)
                     CaravanManager.Instance.ChangeWeightWalue(-ItemSO.weight * CurrentStackCount);
                 else
@@ -354,9 +503,24 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     }
     private void HandleVendorGrids(bool isLeftClick)
     {
-        if (CanCarryItem(isLeftClick) && TryAutomaticPlacement(_tradeReference.CaravanGrid, isLeftClick))
+        var tempGirdType = GridType;
+        GridItem item = TryAutomaticPlacement(_tradeReference.CaravanGrid, isLeftClick);
+        if (CanCarryItem(isLeftClick) && item)
         {
-            if(isLeftClick)
+            if (item == this)
+                SetBackgroundColor(tempGirdType == GridType.vendorToBuy ? red : green);
+            else if (item.ItemAcquired != ItemAcquired || DiffrentAcquiredStackCount > 0)
+            {
+                item.SetBackgroundColor(orange);
+                if(isLeftClick)
+                    item.DiffrentAcquiredStackCount += CurrentStackCount;
+                else
+                    item.DiffrentAcquiredStackCount += 1;
+            }
+            else if (item.ItemAcquired == ItemAcquired)
+                item.SetBackgroundColor(tempGirdType == GridType.vendorToBuy ? red : green);
+            
+            if (isLeftClick)
                 TradeMechanic.Instance.CalculatePrice(this, GridType.caravan, StackCountBeforeStacking);
             else
                 TradeMechanic.Instance.CalculatePrice(this, GridType.caravan, 1);
@@ -377,10 +541,17 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
             if (success)
             {
-                if(isLeftClick)
+                if (isLeftClick)
+                {
                     TradeMechanic.Instance.ActiveItemGenerator.OnChestItemAcquired(temp, StackCountBeforeStacking);
+                    SetBackgroundColor(green);
+
+                }
                 else
+                {
+                    SetBackgroundColor(green);
                     TradeMechanic.Instance.ActiveItemGenerator.OnChestItemAcquired(temp, 1);
+                }
             }
             else
             {
@@ -409,13 +580,22 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     }
     private void HandleVendorPlacement(GridManager gridManager, bool isLeftClick)
     {
-        var item = TryAutomaticPlacement(gridManager, isLeftClick);
+        if (DiffrentAcquiredStateAutomat(gridManager, isLeftClick))
+        {
+            return;
+        }
+        GridItem item = TryAutomaticPlacement(gridManager, isLeftClick);
         if (item)
         {
+            if (item == this)
+                SetBackgroundColor(defaultColor);
+            else
+                item.SetBackgroundColor(defaultColor); 
+
             if (isLeftClick)
             {
                 TradeMechanic.Instance.CalculatePrice(this, gridManager.gridType, StackCountBeforeStacking);
-                CaravanManager.Instance.ChangeWeightWalue(-item.ItemSO.weight * item.CurrentStackCount);
+                CaravanManager.Instance.ChangeWeightWalue(-item.ItemSO.weight * CurrentStackCount);
             }
             else
             {
@@ -423,6 +603,92 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 CaravanManager.Instance.ChangeWeightWalue(-item.ItemSO.weight);
             }
         }
+    }
+    private bool DiffrentAcquiredStateAutomat(GridManager gridManager, bool isLeftClick)
+    {
+        if (DiffrentAcquiredStackCount > 0)
+        {
+            if (gridManager.gridType == GridType.vendorToBuy)
+            {
+                GridItem ClonedGridItem = CloningGridItem(DiffrentAcquiredStackCount);
+                ClonedGridItem.Initialcell = Initialcell;
+
+                if (ItemAcquired)
+                {
+                    SetBackgroundColor(green);
+                    if(isLeftClick)
+                        DiffrentAcquiredStateSetup(ClonedGridItem, false, defaultColor, DiffrentAcquiredStackCount);
+                    else
+                        DiffrentAcquiredStateSetup(ClonedGridItem, false, defaultColor, 1);
+
+                    ItemCanNotBePlacedInThisGrid();
+
+                    ClonedGridItem.TryAutomaticPlacement(gridManager, true);
+                    ClonedGridItem.IsItemFromDiffrentAcquiredStack = false;
+
+                    CaravanManager.Instance.ChangeWeightWalue(-ClonedGridItem.ItemSO.weight * ClonedGridItem.CurrentStackCount);
+                    TradeMechanic.Instance.CalculatePrice(ClonedGridItem, ClonedGridItem.GridType, ClonedGridItem.CurrentStackCount);
+                }
+                else
+                {
+                    SetBackgroundColor(defaultColor);
+                    if(isLeftClick)
+                        DiffrentAcquiredStateSetup(ClonedGridItem, true, green, DiffrentAcquiredStackCount);
+                    else
+                        DiffrentAcquiredStateSetup(ClonedGridItem, true, green, 1);
+
+                     TryAutomaticPlacement(gridManager, true);
+
+                    ClonedGridItem.ItemCanNotBePlacedInThisGrid();
+                    ClonedGridItem.IsItemFromDiffrentAcquiredStack = false;
+
+                    CaravanManager.Instance.ChangeWeightWalue(-ItemSO.weight * CurrentStackCount);
+                    TradeMechanic.Instance.CalculatePrice(this, GridType, CurrentStackCount);
+                }
+                return true;    
+            }
+            else if (gridManager.gridType == GridType.vendorToSell)
+            {
+                GridItem ClonedGridItem = CloningGridItem(DiffrentAcquiredStackCount);
+                ClonedGridItem.Initialcell = Initialcell;
+
+                if (ItemAcquired)
+                {
+                    SetBackgroundColor(defaultColor);
+                    if(isLeftClick)
+                        DiffrentAcquiredStateSetup(ClonedGridItem, false, red, DiffrentAcquiredStackCount);
+                    else
+                        DiffrentAcquiredStateSetup(ClonedGridItem, false, red, 1);
+
+                     TryAutomaticPlacement(gridManager, true);
+
+                    ClonedGridItem.ItemCanNotBePlacedInThisGrid();
+                    ClonedGridItem.IsItemFromDiffrentAcquiredStack = false;
+
+                    CaravanManager.Instance.ChangeWeightWalue(-ItemSO.weight * CurrentStackCount);
+                    TradeMechanic.Instance.CalculatePrice(this, GridType, CurrentStackCount);
+
+                }
+                else
+                {
+                    SetBackgroundColor(red);
+                    if(isLeftClick)
+                        DiffrentAcquiredStateSetup(ClonedGridItem, true, defaultColor, DiffrentAcquiredStackCount);
+                    else
+                        DiffrentAcquiredStateSetup(ClonedGridItem, true, defaultColor, 1);
+
+                    ItemCanNotBePlacedInThisGrid();
+
+                    ClonedGridItem.TryAutomaticPlacement(gridManager, true);
+                    ClonedGridItem.IsItemFromDiffrentAcquiredStack = false;
+
+                    CaravanManager.Instance.ChangeWeightWalue(-ClonedGridItem.ItemSO.weight * ClonedGridItem.CurrentStackCount);
+                    TradeMechanic.Instance.CalculatePrice(ClonedGridItem, ClonedGridItem.GridType, ClonedGridItem.CurrentStackCount);
+                }
+                return true;
+            }
+        }
+        return false;
     }
     #endregion
     #region ShapeOffests
@@ -487,12 +753,25 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         }
         _graphicOffsets.Clear();
 
-        GameObject gridItemPrefab = TradeReferences.Instance.GridItemBackgroundPrefab;
+        GameObject backgroundPrefab = TradeReferences.Instance.GridItemBackgroundPrefab;
         foreach (Vector2Int offset in ShapeOffsets)
         {
-            GameObject prefab = Instantiate(gridItemPrefab, transform);
+            GameObject prefab = Instantiate(backgroundPrefab, transform);
             prefab.GetComponent<RectTransform>().anchoredPosition = offset * 100;
+            prefab.transform.SetAsFirstSibling();
             _graphicOffsets.Add(prefab);
+        }
+    }
+    public void SetBackgroundColor(Color color)
+    {
+        currentColor = color;
+        foreach (GameObject graphicOffset in _graphicOffsets)
+        {
+            Image image = graphicOffset.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = color;
+            }
         }
     }
     protected void ReadGraphicOffset()
@@ -594,7 +873,7 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         
         if (cellToPlaceItem != null && !isLeftClick)
         {
-            returnItem = CloningGridItem();
+            returnItem = CloningGridItem(1);
 
             returnItem.ItemTransitionSetup(gridManager, cellToPlaceItem);
             return returnItem;
@@ -621,6 +900,9 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
             if (targetItem != null)
             {
+                targetItem.CurrentStackCount += CurrentStackCount;
+                targetItem.UpdateStackCounterTMP();
+
                 IsItemStacked = true;
 
                 _gridManager.GridItems.Remove(this);
@@ -650,11 +932,16 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     }
     public void ItemCanNotBeStacked()
     {
+        if (IsItemFromDiffrentAcquiredStack)
+        {
+            OrginalStackedItem.DiffrentAcquiredStackCount += CurrentStackCount;
+            OrginalStackedItem.SetBackgroundColor(orange);
+        }
         OrginalStackedItem.CurrentStackCount += CurrentStackCount;
         OrginalStackedItem.UpdateStackCounterTMP();
         DestroyItem();
     }
-    private bool TryStackItem(GridManager gridManager, GridCell cell)
+    private GridItem TryStackItem(GridManager gridManager, GridCell cell)
     {
         List<GridItem> potentialStackItems = new List<GridItem>();
 
@@ -676,31 +963,30 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             if (targetItem.ItemSO == this.ItemSO && CanAllItemsBeStacked(targetItem))
             {
-                // Update weight and price when stacking
-                if (gridManager.gridType == GridType.caravan && GridType != GridType.caravan) 
-                {
-                    CaravanManager.Instance.ChangeWeightWalue(ItemSO.weight * CurrentStackCount);
-                }
-                DestroyItem();
-                return true;
+                return targetItem;
             }
         }
 
-        return false;
+        return null;
     }
-    public bool CanAllItemsBeStacked(GridItem itemTobeStackedIn)
+    private void StackItem(GridManager gridManager, GridItem targetItem)
+    {
+        targetItem.CurrentStackCount += CurrentStackCount;
+        targetItem.UpdateStackCounterTMP();
+        DestroyItem();
+    }
+    public virtual bool CanAllItemsBeStacked(GridItem itemTobeStackedIn)
     {
         int stackCount = itemTobeStackedIn.CurrentStackCount + CurrentStackCount;
         if (ItemSO.maxStackCount > 0 && stackCount <= ItemSO.maxStackCount)
         {
-            itemTobeStackedIn.CurrentStackCount = stackCount;
-            itemTobeStackedIn.UpdateStackCounterTMP();
+
 
             return true;
         }
         return false;
     }
-    public bool CanOneItemBeStacked(GridItem itemTobeStackedIn)
+    public virtual bool CanOneItemBeStacked(GridItem itemTobeStackedIn)
     {
         int stackCount = itemTobeStackedIn.CurrentStackCount + 1;
         if (ItemSO.maxStackCount > 0 && stackCount <= ItemSO.maxStackCount)
@@ -716,9 +1002,9 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     }
     #endregion
     #region Utilities
-    private GridItem CloningGridItem()
+    private GridItem CloningGridItem(int amount)
     {
-        CurrentStackCount--;
+        CurrentStackCount -= amount;
         UpdateStackCounterTMP();
 
         GameObject ClonedGameObject = Instantiate(gameObject, gameObject.transform.parent);
@@ -726,8 +1012,9 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
         ClonedGridItem.ReadGraphicOffset();
         ClonedGridItem.SimpleInitialize();
+        ClonedGridItem.SetBackgroundColor(currentColor);
 
-        ClonedGridItem.CurrentStackCount = 1;
+        ClonedGridItem.CurrentStackCount = amount;
         ClonedGridItem.UpdateStackCounterTMP();
         
         switch(GridType)
@@ -746,7 +1033,10 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             default:
                 break;
         }
-
+        if (CurrentStackCount <= 0)
+        {
+            DestroyItem();
+        }
         return ClonedGridItem;
     }
     public List<GridCell> GetOccupiedCells()
@@ -807,7 +1097,7 @@ public class GridItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     }
     public void UpdateStackCounterTMP()
     {
-        _ItemStackCounterTMP.text = $"{CurrentStackCount}/{ItemSO.maxStackCount}";
+        _itemStackCounterTMP.text = $"{CurrentStackCount}/{ItemSO.maxStackCount}";
     }
     #endregion
 }
